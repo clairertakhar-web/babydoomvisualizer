@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>District Enrollment Tracker (Demo)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #ffffff;
+            padding: 20px;
+            color: #373737;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .content-wrapper {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-section {
+            flex: 1;
+        }
+        
+        .toggle-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+        
+        .toggle-btn {
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            background-color: #ffffff;
+            color: #373737;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .toggle-btn:hover {
+            border-color: #373737;
+        }
+        
+        .toggle-btn.active {
+            background-color: #373737;
+            color: #ffffff;
+            border-color: #373737;
+        }
+        
+        .toggle-btn.district.active {
+            background-color: #19414e;
+            border-color: #19414e;
+        }
+        
+        .toggle-btn.state.active {
+            background-color: #f1c762;
+            border-color: #f1c762;
+            color: #373737;
+        }
+        
+        .toggle-btn.us.active {
+            background-color: #93bad5;
+            border-color: #93bad5;
+        }
+        
+        h1 {
+            font-family: 'Libre Caslon Text', serif;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #373737;
+            text-align: center;
+        }
+        
+        .chart-container {
+            position: relative;
+            flex: 1;
+            height: 400px;
+            background-color: #fafafa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .stats-panel {
+            width: 220px;
+            background-color: #fafafa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .stats-panel h2 {
+            font-family: 'Libre Caslon Text', serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #373737;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        
+        .stat-item {
+            margin-bottom: 18px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: #373737;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .stat-label.district {
+            color: #19414e;
+        }
+        
+        .stat-label.state {
+            color: #f1c762;
+        }
+        
+        .stat-label.us {
+            color: #93bad5;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        
+        .stat-period {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .stat-value.negative {
+            color: #d9534f;
+        }
+        
+        .stat-value.positive {
+            color: #5cb85c;
+        }
+        
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: #373737;
+            padding: 10px;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 20px;
+        }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .content-wrapper {
+                flex-direction: column;
+            }
+            
+            .stats-panel {
+                width: 100%;
+            }
+            
+            .chart-container {
+                height: 300px;
+                padding: 10px;
+            }
+            
+            .toggle-buttons {
+                flex-wrap: wrap;
+            }
+            
+            .toggle-btn {
+                flex: 1 1 auto;
+                min-width: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>District Enrollment Tracker (Demo)</h1>
+        
+        <div class="content-wrapper">
+            <div class="chart-section">
+                <div class="toggle-buttons">
+                    <button class="toggle-btn district active" onclick="toggleView('district')">Sample District</button>
+                    <button class="toggle-btn state" onclick="toggleView('state')">State Average</button>
+                    <button class="toggle-btn us" onclick="toggleView('us')">U.S. Average</button>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="enrollmentChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="stats-panel">
+                <h2>Change Since 2015</h2>
+                <div class="stat-item">
+                    <div class="stat-label district">Sample District</div>
+                    <div class="stat-value negative" id="districtChange">-10.4%</div>
+                    <div class="stat-period">2015–2023</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label state">State Average</div>
+                    <div class="stat-value negative" id="stateChange">-1.7%</div>
+                    <div class="stat-period">2015–2023</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label us">U.S. Average</div>
+                    <div class="stat-value negative" id="usChange">-0.8%</div>
+                    <div class="stat-period">2015–2023</div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            Data: NCES, CDC | Updated: 2025
+        </footer>
+    </div>
+
+    <script>
+        // Demo data: Years 2015-2023
+        const years = ['2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023'];
+        
+        // Fake enrollment data showing slight decline
+        const sampleDistrict = [12500, 12400, 12300, 12100, 11900, 11800, 11600, 11400, 11200];
+        const stateAverage = [15000, 15100, 15050, 15000, 14950, 14900, 14850, 14800, 14750];
+        const usAverage = [18000, 18100, 18150, 18100, 18050, 18000, 17950, 17900, 17850];
+        
+        // Births data (proxy for future enrollment) - showing decline
+        const birthsDistrict = [220, 218, 215, 210, 205, 200, 195, 190, 185];
+        const birthsState = [3500, 3480, 3450, 3400, 3350, 3300, 3250, 3200, 3150];
+        const birthsUS = [3980000, 3970000, 3950000, 3930000, 3900000, 3870000, 3850000, 3820000, 3800000];
+        
+        // Dataset configurations
+        const datasets = {
+            district: {
+                label: 'Sample District',
+                data: sampleDistrict,
+                borderColor: '#19414e',
+                backgroundColor: 'rgba(25, 65, 78, 0.1)',
+                borderWidth: 3,
+                tension: 0.1,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                yAxisID: 'y'
+            },
+            state: {
+                label: 'State Average',
+                data: stateAverage,
+                borderColor: '#f1c762',
+                backgroundColor: 'rgba(241, 199, 98, 0.1)',
+                borderWidth: 3,
+                tension: 0.1,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                yAxisID: 'y'
+            },
+            us: {
+                label: 'U.S. Average',
+                data: usAverage,
+                borderColor: '#93bad5',
+                backgroundColor: 'rgba(147, 186, 213, 0.1)',
+                borderWidth: 3,
+                tension: 0.1,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                yAxisID: 'y'
+            }
+        };
+        
+        // Births datasets (second Y-axis)
+        const birthsDatasets = {
+            district: {
+                label: 'Births (District County)',
+                data: birthsDistrict,
+                borderColor: '#19414e',
+                backgroundColor: 'rgba(25, 65, 78, 0.05)',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                tension: 0.1,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                yAxisID: 'y2'
+            },
+            state: {
+                label: 'Births (State)',
+                data: birthsState,
+                borderColor: '#f1c762',
+                backgroundColor: 'rgba(241, 199, 98, 0.05)',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                tension: 0.1,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                yAxisID: 'y2'
+            },
+            us: {
+                label: 'Births (U.S.)',
+                data: birthsUS,
+                borderColor: '#93bad5',
+                backgroundColor: 'rgba(147, 186, 213, 0.05)',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                tension: 0.1,
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                yAxisID: 'y2'
+            }
+        };
+        
+        // Create the chart with only district data initially
+        const ctx = document.getElementById('enrollmentChart').getContext('2d');
+        const enrollmentChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: years,
+                datasets: [datasets.district, birthsDatasets.district]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 12
+                            },
+                            generateLabels: function(chart) {
+                                const datasets = chart.data.datasets;
+                                return datasets.map((dataset, i) => ({
+                                    text: dataset.label,
+                                    fillStyle: dataset.borderColor,
+                                    strokeStyle: dataset.borderColor,
+                                    lineWidth: dataset.borderWidth,
+                                    lineDash: dataset.borderDash || [],
+                                    hidden: false,
+                                    index: i
+                                }));
+                            }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        padding: 12,
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y.toLocaleString();
+                                // Different units based on dataset
+                                if (label.includes('Births')) {
+                                    return label + ': ' + value + ' births';
+                                } else {
+                                    return label + ': ' + value + ' students';
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        border: {
+                            display: false
+                        },
+                        grid: {
+                            display: true,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString();
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Total Enrollment',
+                            font: {
+                                size: 13,
+                                weight: 'normal'
+                            }
+                        },
+                        // Add grace/padding to prevent misleading scale
+                        grace: '10%'
+                    },
+                    y2: {
+                        position: 'right',
+                        beginAtZero: false,
+                        border: {
+                            display: false
+                        },
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString();
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Births per Year',
+                            font: {
+                                size: 13,
+                                weight: 'normal'
+                            }
+                        },
+                        grace: '10%'
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'School Year',
+                            font: {
+                                size: 13,
+                                weight: 'normal'
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+        
+        // Toggle view function
+        let currentView = 'district';
+        
+        function toggleView(view) {
+            // Update button states
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('.toggle-btn.' + view).classList.add('active');
+            
+            // Update chart data with both enrollment and births
+            enrollmentChart.data.datasets = [datasets[view], birthsDatasets[view]];
+            enrollmentChart.update();
+            
+            currentView = view;
+        }
+        
+        // Calculate percent changes
+        function calculatePercentChange(startValue, endValue) {
+            const change = ((endValue - startValue) / startValue) * 100;
+            return change;
+        }
+        
+        // Update stat values
+        const districtChange = calculatePercentChange(sampleDistrict[0], sampleDistrict[sampleDistrict.length - 1]);
+        const stateChange = calculatePercentChange(stateAverage[0], stateAverage[stateAverage.length - 1]);
+        const usChange = calculatePercentChange(usAverage[0], usAverage[usAverage.length - 1]);
+        
+        // Format and display
+        function formatChange(value, elementId) {
+            const element = document.getElementById(elementId);
+            const formatted = (value >= 0 ? '+' : '') + value.toFixed(1) + '%';
+            element.textContent = formatted;
+            
+            // Apply color class
+            element.classList.remove('positive', 'negative');
+            if (value < 0) {
+                element.classList.add('negative');
+            } else if (value > 0) {
+                element.classList.add('positive');
+            }
+        }
+        
+        formatChange(districtChange, 'districtChange');
+        formatChange(stateChange, 'stateChange');
+        formatChange(usChange, 'usChange');
+    </script>
+</body>
+</html>
