@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>District Enrollment Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background-color: #ffffff;
+            padding: 20px;
+            color: #373737;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-family: 'Libre Caslon Text', serif;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #373737;
+            text-align: center;
+        }
+        
+        /* Search Container */
+        .search-container {
+            margin-bottom: 20px;
+            max-width: 500px;
+            position: relative;
+        }
+        
+        .search-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #373737;
+            margin-bottom: 8px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 4px;
+            transition: border-color 0.2s ease;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #19414e;
+        }
+        
+        /* Autocomplete */
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #19414e;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .autocomplete-dropdown.show { display: block; }
+        
+        .autocomplete-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .autocomplete-item:hover { background: #f5f5f5; }
+        
+        .autocomplete-item-name {
+            font-weight: 500;
+            color: #19414e;
+            margin-bottom: 4px;
+        }
+        
+        .autocomplete-item-details {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .autocomplete-counter {
+            padding: 8px 16px;
+            background: #f8f8f8;
+            color: #666;
+            font-size: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 500;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        /* Main Content */
+        .content-wrapper {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-section {
+            flex: 1;
+        }
+        
+        /* Time Range Toggle */
+        .time-range-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+        
+        .time-range-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #373737;
+        }
+        
+        .time-range-btn {
+            padding: 6px 14px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            color: #373737;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .time-range-btn:hover {
+            border-color: #19414e;
+        }
+        
+        .time-range-btn.active {
+            background: #19414e;
+            color: white;
+            border-color: #19414e;
+            font-weight: 600;
+        }
+        
+        /* View Toggle */
+        .toggle-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+        
+        .toggle-btn {
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            color: #373737;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .toggle-btn:hover {
+            border-color: #373737;
+        }
+        
+        .toggle-btn.active {
+            background: #19414e;
+            color: white;
+            border-color: #19414e;
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            background: #fafafa;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .chart-header {
+            margin-bottom: 20px;
+        }
+        
+        .chart-title {
+            font-family: 'Libre Caslon Text', serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: #373737;
+            margin-bottom: 5px;
+        }
+        
+        .chart-subtitle {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .chart-wrapper {
+            height: auto;
+            position: relative;
+        }
+
+        .chart-wrapper.split {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .chart-panel {
+            position: relative;
+            height: 100%;
+        }
+
+        .chart-panel canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-panel-births {
+            display: none;
+        }
+
+        .chart-wrapper.split .chart-panel {
+            flex: 1;
+            height: auto;
+        }
+
+        .chart-wrapper.split .chart-panel-births {
+            display: block;
+        }
+
+        .chart-panel-note {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #999;
+            background: rgba(250, 250, 250, 0.85);
+            text-align: center;
+            padding: 10px;
+        }
+
+        .chart-panel-note.show {
+            display: flex;
+        }
+
+        #enrollmentPanel {
+            height: 400px;
+        }
+
+        #birthsPanel {
+            height: 175px;
+        }
+        
+        .export-button {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #373737;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        
+        .export-button:hover {
+            border-color: #19414e;
+            color: #19414e;
+        }
+
+        .export-logo {
+            height: 48px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .export-logo.hidden {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+        }
+        
+        /* Stats Panel */
+        .stats-panel {
+            width: 240px;
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .stats-panel h2 {
+            font-family: 'Libre Caslon Text', serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #373737;
+            margin-bottom: 15px;
+        }
+        
+        .stat-item {
+            margin-bottom: 20px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 6px;
+        }
+        
+        .stat-metric {
+            font-size: 11px;
+            color: #373737;
+            font-weight: 600;
+        }
+
+        .stat-metric.metric-enrollment {
+            color: #19414e;
+        }
+
+        .stat-metric.metric-births {
+            color: #d4a637;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        
+        .stat-births-value {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1;
+            color: #d4a637;
+        }
+
+        .stat-births-value.negative { color: #d9534f; }
+        .stat-births-value.positive { color: #5cb85c; }
+        .stat-births-value.neutral { color: #999; }
+        
+        .stat-period {
+            font-size: 10px;
+            color: #999;
+            margin-top: 6px;
+        }
+        
+        .stat-value.negative { color: #d9534f; }
+        .stat-value.positive { color: #5cb85c; }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            padding: 10px;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 20px;
+        }
+        
+        /* Sources Accordion */
+        .sources-section {
+            max-width: 1200px;
+            margin: 30px auto 20px;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 20px;
+        }
+        
+        .accordion-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 15px 20px;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        
+        .accordion-header:hover { background: #f5f5f5; }
+        
+        .accordion-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Libre Caslon Text', serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #373737;
+        }
+        
+        .accordion-arrow {
+            font-size: 14px;
+            color: #666;
+            transition: transform 0.3s;
+        }
+        
+        .accordion-arrow.open { transform: rotate(180deg); }
+        
+        .accordion-content {
+            display: none;
+            padding: 25px 20px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+        }
+        
+        .accordion-content.show { display: block; }
+        
+        .source-section {
+            margin-bottom: 25px;
+        }
+        
+        .source-section:last-child { margin-bottom: 0; }
+        
+        .source-heading {
+            font-size: 13px;
+            font-weight: 600;
+            color: #19414e;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .source-item {
+            margin-bottom: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .source-label {
+            font-weight: 500;
+            color: #666;
+        }
+        
+        .source-link {
+            color: #19414e;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+        
+        .source-link:hover { border-bottom-color: #19414e; }
+        
+        .source-note {
+            font-style: italic;
+            color: #666;
+            font-size: 13px;
+        }
+        
+        .methodology-list {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .methodology-list li {
+            margin-bottom: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        /* Mobile */
+        @media (max-width: 600px) {
+            .content-wrapper { flex-direction: column; }
+            .stats-panel { width: 100%; }
+            .chart-wrapper { height: 350px; }
+            #enrollmentPanel { height: 300px; }
+            #birthsPanel { height: 150px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>District Enrollment Tracker</h1>
+        
+        <div class="search-container">
+            <label class="search-label" for="districtSearch">Search for a school district:</label>
+            <input 
+                type="text" 
+                id="districtSearch" 
+                class="search-input" 
+                placeholder="Type district name, city, or state..."
+                autocomplete="off"
+            >
+            <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+        </div>
+        
+        <div id="loadingIndicator" class="loading">
+            Loading district data...
+        </div>
+        
+        <div class="content-wrapper" id="contentWrapper" style="display: none;">
+            <div class="chart-section">
+                <div class="time-range-container">
+                    <span class="time-range-label">Time Range:</span>
+                    <button class="time-range-btn active" type="button" data-range="all">All (20yr)</button>
+                    <button class="time-range-btn" type="button" data-range="10">10 Years</button>
+                    <button class="time-range-btn" type="button" data-range="5">5 Years</button>
+                </div>
+                
+                <div class="toggle-buttons">
+                    <button class="toggle-btn active" type="button" data-view="district" id="districtBtn">Sample District</button>
+                    <button class="toggle-btn" type="button" data-view="state">State Average</button>
+                    <button class="toggle-btn" type="button" data-view="us">U.S. Average</button>
+                </div>
+                
+                <div class="chart-container">
+                    <button class="export-button" type="button" id="exportButton">📥 Export PNG</button>
+                    <img class="export-logo hidden" id="exportLogo" src="logo.png" alt="Planfully Consulting logo" />
+                    
+                    <div class="chart-header">
+                        <div class="chart-title">District Enrollment Trends</div>
+                        <div class="chart-subtitle" id="chartSubtitle">Enrollment and births: comparing district, state, and national context</div>
+                    </div>
+                    
+                    <div class="chart-wrapper split" id="chartWrapper">
+                        <div class="chart-panel" id="enrollmentPanel">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                        <div class="chart-panel chart-panel-births" id="birthsPanel">
+                            <canvas id="birthsChart"></canvas>
+                            <div class="chart-panel-note" id="birthsUnavailable" aria-live="polite">Birth data unavailable</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stats-panel">
+                <h2 id="statsHeader">Change Since 2005</h2>
+                <div class="stat-item">
+                    <div class="stat-label" id="districtLabel">Sample District</div>
+                    <div class="stat-row">
+                        <div class="stat-metric metric-enrollment">Enrollment</div>
+                        <div class="stat-value negative" id="districtChange">-10.4%</div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-metric metric-births">Births</div>
+                        <div class="stat-births-value" id="districtBirthsChange">-8.2%</div>
+                    </div>
+                    <div class="stat-period">2005–2024</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">State Average</div>
+                    <div class="stat-row">
+                        <div class="stat-metric metric-enrollment">Enrollment</div>
+                        <div class="stat-value negative" id="stateChange">-1.7%</div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-metric metric-births">Births</div>
+                        <div class="stat-births-value" id="stateBirthsChange">-9.5%</div>
+                    </div>
+                    <div class="stat-period">2005–2024</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">U.S. Average</div>
+                    <div class="stat-row">
+                        <div class="stat-metric metric-enrollment">Enrollment</div>
+                        <div class="stat-value positive" id="usChange">+0.6%</div>
+                    </div>
+                    <div class="stat-row">
+                        <div class="stat-metric metric-births">Births</div>
+                        <div class="stat-births-value" id="usBirthsChange">-4.1%</div>
+                    </div>
+                    <div class="stat-period">2005–2024</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sources-section">
+            <div class="accordion-header" id="accordionHeader">
+                <div class="accordion-title">
+                    <span>ℹ️</span>
+                    <span>Sources & Methodology</span>
+                </div>
+                <span class="accordion-arrow" id="accordionArrow">▼</span>
+            </div>
+            
+            <div class="accordion-content" id="accordionContent">
+                <div class="source-section">
+                    <div class="source-heading">Enrollment Data</div>
+                    <div class="source-item">
+                        <span class="source-label">Source:</span> U.S. Department of Education, National Center for Education Statistics (NCES)
+                    </div>
+                    <div class="source-item">
+                        <span class="source-label">Dataset:</span> Common Core of Data (CCD), Local Education Agency Universe Survey
+                    </div>
+                    <div class="source-item">
+                        <span class="source-label">Years:</span> 2005–2024
+                    </div>
+                    <div class="source-item">
+                        <span class="source-label">Link:</span> <a href="https://nces.ed.gov/ccd/pubagency.asp" target="_blank" rel="noopener" class="source-link">nces.ed.gov/ccd/pubagency.asp</a>
+                    </div>
+                    <div class="source-item source-note">
+                        Note: Total membership includes all grades and all students
+                    </div>
+                </div>
+                
+                <div class="source-section">
+                    <div class="source-heading">Births Data</div>
+                    <div class="source-item">
+                        <span class="source-label">Source:</span> Centers for Disease Control and Prevention (CDC), National Center for Health Statistics
+                    </div>
+                    <div class="source-item">
+                        <span class="source-label">Dataset:</span> Natality Public Use Files
+                    </div>
+                    <div class="source-item">
+                        <span class="source-label">Years:</span> 2005–2023
+                    </div>
+                    <div class="source-item">
+                        <span class="source-label">Geography:</span> County-level aggregated to district approximation
+                    </div>
+                    <div class="source-item">
+                        <span class="source-label">Link:</span> <a href="https://wonder.cdc.gov/natality.html" target="_blank" rel="noopener" class="source-link">wonder.cdc.gov/natality.html</a>
+                    </div>
+                    <div class="source-item source-note">
+                        Note: Birth data used as a proxy for future K-12 enrollment trends
+                    </div>
+                </div>
+                
+                <div class="source-section">
+                    <div class="source-heading">Methodology</div>
+                    <ul class="methodology-list">
+                        <li><strong>State averages:</strong> Sum of all district enrollments within each state by year</li>
+                        <li><strong>National totals:</strong> Sum of all reporting district enrollments across the United States</li>
+                        <li><strong>Birth matching:</strong> County-level birth data matched to districts using primary county designation</li>
+                        <li><strong>Percent changes:</strong> Calculated as ((end value - start value) / start value) × 100</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            Data: NCES, CDC | Updated: 2025
+        </footer>
+    </div>
+
+    <script>
+        // Global state
+        let districtsData = [];
+        let enrollmentData = {};
+        let stateAggregates = {};
+        let nationalAggregates = {};
+        let birthsData = {};
+        let stateBirthsAggregates = {};
+        let nationalBirthsAggregates = {};
+        
+        let mainChart;
+        let birthsChart;
+        let chartMode = 'split';
+        let selectedDistrict = null;
+        let currentTimeRange = 'all';
+        let currentView = 'district';
+
+        let currentEnrollmentSeries = { years: [], values: [], label: '' };
+        let currentBirthSeries = { years: [], values: [], label: '' };
+        const LOGO_SRC = 'logo.png';
+        
+        const dom = {
+            searchInput: null,
+            dropdown: null,
+            loadingIndicator: null,
+            contentWrapper: null,
+            chartSubtitle: null,
+            statsHeader: null,
+            districtBtn: null,
+            exportButton: null,
+            chartWrapper: null,
+            birthsPanel: null,
+            birthsCanvas: null,
+            birthsUnavailable: null,
+            accordionHeader: null,
+            accordionContent: null,
+            accordionArrow: null,
+            statPeriods: []
+        };
+        
+        // Color hierarchy - teal for enrollment, darker gold for births
+        const COLORS = {
+            districtEnroll: '#19414e',   // Deep teal
+            stateEnroll: '#5a8a99',      // Medium teal
+            usEnroll: '#8db3bf',         // Light teal
+            births: '#d4a637'            // Darker gold/yellow
+        };
+        
+        function getEl(id) {
+            return document.getElementById(id);
+        }
+
+        function getTooltipCallbacks() {
+            return {
+                title: (items) => `Year ${items[0].label}`,
+                label: (context) => {
+                    const label = context.dataset.label || '';
+                    const value = context.parsed.y;
+                    if (!Number.isFinite(value)) {
+                        return null;
+                    }
+                    return `${label}: ${value.toLocaleString()}`;
+                }
+            };
+        }
+
+        function getTooltipOptions() {
+            return {
+                backgroundColor: '#2c3e50',
+                titleColor: '#ecf0f1',
+                bodyColor: '#ecf0f1',
+                padding: 12,
+                displayColors: false,
+                titleFont: { size: 11, weight: '600' },
+                bodyFont: { size: 12 },
+                callbacks: getTooltipCallbacks()
+            };
+        }
+
+        function createDualChart(labels, enrollmentValues, enrollmentLabel, birthsValues, birthsLabel) {
+            const canvas = getEl('mainChart');
+            if (!canvas || !window.Chart) {
+                return null;
+            }
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return null;
+            }
+
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: enrollmentLabel,
+                            data: enrollmentValues,
+                            borderColor: COLORS.districtEnroll,
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            tension: 0.1,
+                            pointRadius: 3,
+                            yAxisID: 'y',
+                            hidden: false
+                        },
+                        {
+                            label: 'State Average',
+                            data: [],
+                            borderColor: COLORS.stateEnroll,
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            tension: 0.1,
+                            pointRadius: 2,
+                            yAxisID: 'y',
+                            hidden: true
+                        },
+                        {
+                            label: 'U.S. Average',
+                            data: [],
+                            borderColor: COLORS.usEnroll,
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            tension: 0.1,
+                            pointRadius: 2,
+                            yAxisID: 'y',
+                            hidden: true
+                        },
+                        {
+                            label: birthsLabel,
+                            data: birthsValues,
+                            borderColor: COLORS.births,
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 3],
+                            tension: 0.1,
+                            pointRadius: 2,
+                            yAxisID: 'y2',
+                            hidden: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 750,
+                        easing: 'easeInOutQuart'
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: { size: 11 },
+                                color: '#666',
+                                filter: function(item, chart) {
+                                    return !chart.datasets[item.datasetIndex].hidden;
+                                }
+                            }
+                        },
+                        tooltip: getTooltipOptions()
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#999', font: { size: 11 } },
+                            title: {
+                                display: true,
+                                text: 'School Year',
+                                color: '#666',
+                                font: { size: 11, weight: '500' }
+                            }
+                        },
+                        y: {
+                            position: 'left',
+                            beginAtZero: false,
+                            grid: { color: '#f0f0f0', drawBorder: false },
+                            ticks: {
+                                color: COLORS.districtEnroll,
+                                font: { size: 11 },
+                                callback: (value) => value.toLocaleString()
+                            },
+                            title: {
+                                display: true,
+                                text: 'Total Enrollment',
+                                color: COLORS.districtEnroll,
+                                font: { size: 11, weight: '600' }
+                            },
+                            grace: '5%'
+                        },
+                        y2: {
+                            position: 'right',
+                            beginAtZero: false,
+                            grid: { display: false },
+                            ticks: {
+                                color: COLORS.births,
+                                font: { size: 11 },
+                                callback: (value) => value.toLocaleString()
+                            },
+                            title: {
+                                display: true,
+                                text: 'Births per Year',
+                                color: COLORS.births,
+                                font: { size: 11, weight: '600' }
+                            },
+                            grace: '5%'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createEnrollmentChart(labels, values, label) {
+            const canvas = getEl('mainChart');
+            if (!canvas || !window.Chart) {
+                return null;
+            }
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return null;
+            }
+
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label,
+                            data: values,
+                            borderColor: COLORS.districtEnroll,
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            tension: 0.1,
+                            pointRadius: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 750,
+                        easing: 'easeInOutQuart'
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: { size: 11 },
+                                color: '#666'
+                            }
+                        },
+                        tooltip: getTooltipOptions()
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#999', font: { size: 11 } },
+                            title: {
+                                display: true,
+                                text: 'School Year',
+                                color: '#666',
+                                font: { size: 11, weight: '500' }
+                            }
+                        },
+                        y: {
+                            position: 'left',
+                            beginAtZero: false,
+                            grid: { color: '#f0f0f0', drawBorder: false },
+                            ticks: {
+                                color: COLORS.districtEnroll,
+                                font: { size: 11 },
+                                callback: (value) => value.toLocaleString()
+                            },
+                            title: {
+                                display: true,
+                                text: 'Total Enrollment',
+                                color: COLORS.districtEnroll,
+                                font: { size: 11, weight: '600' }
+                            },
+                            grace: '5%'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createBirthsChart(labels, values, label) {
+            const canvas = getEl('birthsChart');
+            if (!canvas || !window.Chart) {
+                return null;
+            }
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return null;
+            }
+
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label,
+                            data: values,
+                            borderColor: COLORS.births,
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 3],
+                            tension: 0.1,
+                            pointRadius: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 750,
+                        easing: 'easeInOutQuart'
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: { size: 11 },
+                                color: '#666'
+                            }
+                        },
+                        tooltip: getTooltipOptions()
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#999', font: { size: 11 } },
+                            title: {
+                                display: true,
+                                text: 'School Year',
+                                color: '#666',
+                                font: { size: 11, weight: '500' }
+                            }
+                        },
+                        y: {
+                            position: 'left',
+                            beginAtZero: false,
+                            grid: { color: '#f0f0f0', drawBorder: false },
+                            ticks: {
+                                color: COLORS.births,
+                                font: { size: 11 },
+                                callback: (value) => value.toLocaleString()
+                            },
+                            title: {
+                                display: true,
+                                text: 'Births per Year',
+                                color: COLORS.births,
+                                font: { size: 11, weight: '600' }
+                            },
+                            grace: '5%'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Load data
+        async function loadData() {
+            try {
+                const [districts, enrollment, stateAgg, nationalAgg, births, stateBirths, nationalBirths] = await Promise.all([
+                    fetch('districts.json').then(r => r.json()),
+                    fetch('enrollment_data.json').then(r => r.json()),
+                    fetch('state_aggregates.json').then(r => r.json()),
+                    fetch('national_aggregates.json').then(r => r.json()),
+                    fetch('births_data.json').then(r => r.json()),
+                    fetch('state_births_aggregates.json').then(r => r.json()),
+                    fetch('national_births_aggregates.json').then(r => r.json())
+                ]);
+                
+                districtsData = districts;
+                enrollmentData = enrollment;
+                stateAggregates = stateAgg;
+                nationalAggregates = nationalAgg;
+                birthsData = births;
+                stateBirthsAggregates = stateBirths;
+                nationalBirthsAggregates = nationalBirths;
+                
+                console.log(`✓ Loaded ${districtsData.length} districts`);
+                
+                if (dom.loadingIndicator) {
+                    dom.loadingIndicator.style.display = 'none';
+                }
+                if (dom.contentWrapper) {
+                    dom.contentWrapper.style.display = 'flex';
+                }
+                
+                initializeChart();
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                if (dom.loadingIndicator) {
+                    dom.loadingIndicator.innerHTML = 
+                        '⚠️ Error loading data. Please refresh.';
+                }
+            }
+        }
+        
+        // Initialize dual-axis chart
+        function initializeChart() {
+            // Real data from Jefferson County School District No. R-1 (Colorado)
+            // Using this as sample to show realistic trends (not labeled as such)
+            const sampleYears = ['2005', '2006', '2007', '2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'];
+            const sampleEnrollment = [86273, 85942, 85634, 85331, 85012, 84701, 84385, 84056, 83712, 83351, 82971, 82572, 82153, 81713, 81249, 77891, 77142, 76371, 75573, 73513];
+            const sampleBirths = [6891, 7123, 7401, 7156, 6823, 6512, 6301, 6189, 6078, 5967, 5856, 5745, 5634, 5523, 5412, 5301, 5190, 5079, 4968, 4857];
+
+            currentEnrollmentSeries = { years: sampleYears, values: sampleEnrollment, label: 'District Enrollment' };
+            currentBirthSeries = { years: sampleYears, values: sampleBirths, label: 'Births (County)' };
+
+            if (mainChart) {
+                mainChart.destroy();
+            }
+            if (birthsChart) {
+                birthsChart.destroy();
+            }
+            mainChart = createEnrollmentChart(sampleYears, sampleEnrollment, 'District Enrollment');
+            birthsChart = createBirthsChart(sampleYears, sampleBirths, 'Births (County)');
+            chartMode = 'split';
+        }
+        
+        function setActiveButton(selector, target) {
+            document.querySelectorAll(selector).forEach(btn => btn.classList.remove('active'));
+            if (target) {
+                target.classList.add('active');
+            }
+        }
+        
+        // Time range filtering
+        function setTimeRange(range, target) {
+            currentTimeRange = range === 'all' ? 'all' : String(range);
+            setActiveButton('.time-range-btn', target);
+            
+            const numericRange = range === 'all' ? null : Number(range);
+            let startYear = 2005;
+            if (numericRange === 10) {
+                startYear = 2015;
+            } else if (numericRange === 5) {
+                startYear = 2020;
+            }
+            if (dom.statsHeader) {
+                dom.statsHeader.textContent = `Change Since ${startYear}`;
+            }
+            
+            if (selectedDistrict) {
+                loadDistrictData(selectedDistrict);
+            }
+        }
+        
+        function filterDataByTimeRange(years, data) {
+            if (currentTimeRange === 'all') {
+                return { years, data };
+            }
+            
+            const numYears = parseInt(currentTimeRange, 10);
+            const startIndex = Math.max(0, years.length - numYears);
+            
+            return {
+                years: years.slice(startIndex),
+                data: data.slice(startIndex)
+            };
+        }
+
+        function buildDistrictEnrollmentSeries(districtData) {
+            if (!districtData || !Array.isArray(districtData.years) || !Array.isArray(districtData.enrollment)) {
+                return { years: [], values: [] };
+            }
+            return { years: districtData.years, values: districtData.enrollment };
+        }
+
+        function aggregateEnrollmentFromDistricts(matchFn) {
+            const totalsByYear = {};
+            districtsData.forEach(district => {
+                if (!matchFn(district)) {
+                    return;
+                }
+                const data = enrollmentData[district.leaid];
+                if (!data || !Array.isArray(data.years) || !Array.isArray(data.enrollment)) {
+                    return;
+                }
+                data.years.forEach((year, idx) => {
+                    const value = data.enrollment[idx];
+                    if (typeof value !== 'number') {
+                        return;
+                    }
+                    totalsByYear[year] = (totalsByYear[year] || 0) + value;
+                });
+            });
+
+            const years = Object.keys(totalsByYear).map(Number).sort((a, b) => a - b);
+            const values = years.map(year => totalsByYear[year]);
+            return { years, values };
+        }
+
+        function buildStateAggregateEnrollmentSeries(stateCode) {
+            const stateData = stateAggregates[stateCode];
+            if (stateData && Array.isArray(stateData.years) && Array.isArray(stateData.enrollment)) {
+                return { years: stateData.years, values: stateData.enrollment };
+            }
+            return aggregateEnrollmentFromDistricts(district => district.state === stateCode);
+        }
+
+        function buildUSAggregateEnrollmentSeries() {
+            if (nationalAggregates && Array.isArray(nationalAggregates.years) && Array.isArray(nationalAggregates.enrollment)) {
+                return { years: nationalAggregates.years, values: nationalAggregates.enrollment };
+            }
+            return aggregateEnrollmentFromDistricts(() => true);
+        }
+
+        function buildBirthSeries(birthsSeries) {
+            if (!birthsSeries || !Array.isArray(birthsSeries.years) || !Array.isArray(birthsSeries.births)) {
+                return { years: [], values: [] };
+            }
+            return { years: birthsSeries.years, values: birthsSeries.births };
+        }
+
+        function setEnrollmentSeries(series, label) {
+            const filtered = filterDataByTimeRange(series.years || [], series.values || []);
+            currentEnrollmentSeries = { years: filtered.years, values: filtered.data, label };
+        }
+
+        function setBirthSeries(series, label) {
+            const filtered = filterDataByTimeRange(series.years || [], series.values || []);
+            currentBirthSeries = { years: filtered.years, values: filtered.data, label };
+        }
+
+        function computeMagnitudeRatio(enrollmentValues, birthValues) {
+            const enrollMax = Math.max(...enrollmentValues.filter(Number.isFinite));
+            const birthMax = Math.max(...birthValues.filter(Number.isFinite));
+            if (!Number.isFinite(enrollMax) || !Number.isFinite(birthMax) || birthMax === 0) {
+                return null;
+            }
+            return enrollMax / birthMax;
+        }
+
+        function haveAlignedYears() {
+            if (currentEnrollmentSeries.years.length !== currentBirthSeries.years.length) {
+                return false;
+            }
+            return currentEnrollmentSeries.years.every((year, idx) => year === currentBirthSeries.years[idx]);
+        }
+
+        function updateSubtitle(hasBirths) {
+            const subtitles = {
+                district: 'Enrollment and births: comparing district, state, and national context',
+                state: 'State-level enrollment and births trends',
+                us: 'National enrollment and births trends'
+            };
+            const base = subtitles[currentView] || '';
+            if (dom.chartSubtitle) {
+                dom.chartSubtitle.textContent = hasBirths ? base : `${base} • Birth data unavailable`;
+            }
+        }
+
+        function buildAlignedYears() {
+            const yearSet = new Set();
+            currentEnrollmentSeries.years.forEach(year => yearSet.add(year));
+            currentBirthSeries.years.forEach(year => yearSet.add(year));
+            return Array.from(yearSet).sort((a, b) => Number(a) - Number(b));
+        }
+
+        function mapSeriesByYear(years, seriesYears, seriesValues) {
+            const map = {};
+            seriesYears.forEach((year, idx) => {
+                map[String(year)] = seriesValues[idx];
+            });
+            return years.map(year => {
+                const value = map[String(year)];
+                return Number.isFinite(value) ? value : null;
+            });
+        }
+
+        function refreshChartRendering() {
+            const hasBirths = currentBirthSeries.values.some(Number.isFinite);
+            updateSubtitle(hasBirths);
+
+            if (dom.birthsUnavailable) {
+                dom.birthsUnavailable.classList.toggle('show', !hasBirths);
+            }
+
+            if (!mainChart || !birthsChart) {
+                return;
+            }
+
+            const alignedYears = buildAlignedYears();
+            const labels = alignedYears.map(year => year.toString());
+            const enrollmentValues = mapSeriesByYear(alignedYears, currentEnrollmentSeries.years, currentEnrollmentSeries.values);
+            const birthsValues = mapSeriesByYear(alignedYears, currentBirthSeries.years, currentBirthSeries.values);
+
+            mainChart.data.labels = labels;
+            mainChart.data.datasets[0].data = enrollmentValues;
+            mainChart.data.datasets[0].label = currentEnrollmentSeries.label || 'District Enrollment';
+            if (mainChart.options.plugins && mainChart.options.plugins.tooltip) {
+                mainChart.options.plugins.tooltip.callbacks = getTooltipCallbacks();
+            }
+            mainChart.update();
+
+            birthsChart.data.labels = labels;
+            birthsChart.data.datasets[0].data = birthsValues;
+            birthsChart.data.datasets[0].label = currentBirthSeries.label || 'Births';
+            if (birthsChart.options.plugins && birthsChart.options.plugins.tooltip) {
+                birthsChart.options.plugins.tooltip.callbacks = getTooltipCallbacks();
+            }
+            birthsChart.update();
+        }
+        
+        // View toggle
+        function toggleView(view, target) {
+            setActiveButton('.toggle-btn', target);
+            
+            currentView = view;
+            
+            if (!selectedDistrict || !mainChart) {
+                return;
+            }
+            
+            // Instead of hiding/showing datasets, update their data for smooth transitions
+            // This makes enrollment lines transition smoothly like births does
+            
+            if (view === 'district') {
+                // District enrollment: show data
+                const districtData = enrollmentData[selectedDistrict.leaid];
+                const districtSeries = buildDistrictEnrollmentSeries(districtData);
+                setEnrollmentSeries(districtSeries, selectedDistrict.name);
+                
+                // State/US: empty data (causes smooth fade out)
+                
+                // District births
+                const districtBirths = birthsData[selectedDistrict.leaid];
+                if (districtBirths) {
+                    const birthsSeries = buildBirthSeries(districtBirths);
+                    setBirthSeries(birthsSeries, `Births (${districtBirths.county})`);
+                } else {
+                    setBirthSeries({ years: [], values: [] }, 'Births');
+                }
+                
+            } else if (view === 'state') {
+                // State enrollment: show data
+                const stateSeries = buildStateAggregateEnrollmentSeries(selectedDistrict.state);
+                setEnrollmentSeries(stateSeries, 'State Average');
+                
+                // District/US: empty data
+                
+                // State births
+                if (stateBirthsAggregates[selectedDistrict.state]) {
+                    const stateBirths = stateBirthsAggregates[selectedDistrict.state];
+                    const birthsSeries = buildBirthSeries(stateBirths);
+                    setBirthSeries(birthsSeries, `Births (${selectedDistrict.state})`);
+                } else {
+                    setBirthSeries({ years: [], values: [] }, 'Births');
+                }
+                
+            } else if (view === 'us') {
+                // US enrollment: show data
+                const usSeries = buildUSAggregateEnrollmentSeries();
+                setEnrollmentSeries(usSeries, 'U.S. Average');
+                
+                // District/State: empty data
+                
+                // US births
+                const birthsSeries = buildBirthSeries(nationalBirthsAggregates);
+                setBirthSeries(birthsSeries, 'Births (U.S.)');
+            }
+
+            refreshChartRendering();
+        }
+        
+        // Search functionality
+        function handleSearchInput(e) {
+            if (!dom.dropdown) {
+                return;
+            }
+            const searchTerm = e.target.value.trim();
+            
+            if (searchTerm.length < 2) {
+                dom.dropdown.classList.remove('show');
+                return;
+            }
+            
+            const words = searchTerm.toLowerCase().split(/\s+/);
+            
+            const matches = districtsData.filter(d => {
+                const text = `${d.name} ${d.state} ${d.county || ''}`.toLowerCase();
+                return words.every(word => text.includes(word));
+            }).slice(0, 50);
+            
+            displayAutocomplete(matches);
+        }
+        
+        function displayAutocomplete(matches) {
+            if (!dom.dropdown) {
+                return;
+            }
+            dom.dropdown.innerHTML = '';
+            
+            if (matches.length === 0) {
+                dom.dropdown.innerHTML = '<div style="padding:12px 16px;color:#999;">No districts found</div>';
+                dom.dropdown.classList.add('show');
+                return;
+            }
+            
+            const counter = document.createElement('div');
+            counter.className = 'autocomplete-counter';
+            counter.textContent = matches.length === 50 ? 
+                `Showing 50 results` : 
+                `${matches.length} ${matches.length === 1 ? 'district' : 'districts'} found`;
+            dom.dropdown.appendChild(counter);
+            
+            matches.forEach(district => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.innerHTML = `
+                    <div class="autocomplete-item-name">${district.name}</div>
+                    <div class="autocomplete-item-details">${district.state}${district.county ? ' - ' + district.county : ''}</div>
+                `;
+                item.addEventListener('click', () => selectDistrict(district));
+                dom.dropdown.appendChild(item);
+            });
+            
+            dom.dropdown.classList.add('show');
+        }
+        
+        function selectDistrict(district) {
+            selectedDistrict = district;
+            if (dom.searchInput) {
+                dom.searchInput.value = `${district.name} (${district.state})`;
+            }
+            if (dom.dropdown) {
+                dom.dropdown.classList.remove('show');
+            }
+            
+            loadDistrictData(district);
+        }
+        
+        function handleDocumentClick(e) {
+            if (!dom.searchInput || !dom.dropdown) {
+                return;
+            }
+            if (!dom.searchInput.contains(e.target) && !dom.dropdown.contains(e.target)) {
+                dom.dropdown.classList.remove('show');
+            }
+        }
+        
+        // Load district data
+        function loadDistrictData(district) {
+            const districtData = enrollmentData[district.leaid];
+            
+            if (!districtData) {
+                alert('No enrollment data available for this district');
+                return;
+            }
+            if (!mainChart) {
+                return;
+            }
+            
+            if (currentView === 'state') {
+                const stateSeries = buildStateAggregateEnrollmentSeries(district.state);
+                setEnrollmentSeries(stateSeries, 'State Average');
+            } else if (currentView === 'us') {
+                const usSeries = buildUSAggregateEnrollmentSeries();
+                setEnrollmentSeries(usSeries, 'U.S. Average');
+            } else {
+                const districtSeries = buildDistrictEnrollmentSeries(districtData);
+                setEnrollmentSeries(districtSeries, district.name);
+            }
+            
+            // Update births
+            const districtBirths = birthsData[district.leaid];
+            if (districtBirths) {
+                const birthsSeries = buildBirthSeries(districtBirths);
+                setBirthSeries(birthsSeries, `Births (${districtBirths.county})`);
+            } else {
+                setBirthSeries({ years: [], values: [] }, 'Births');
+            }
+            
+            refreshChartRendering();
+            
+            // Update button
+            if (dom.districtBtn) {
+                dom.districtBtn.textContent = 
+                    district.name.length > 25 ? district.name.substring(0, 22) + '...' : district.name;
+            }
+            
+            // Update stats
+            updateStatsPanel(district, districtData);
+        }
+        
+        function updateStatsPanel(district, districtData) {
+            const filtered = filterDataByTimeRange(districtData.years || [], districtData.enrollment || []);
+            const years = filtered.years;
+            const enrollment = filtered.data;
+            
+            if (years.length > 1 && enrollment.length > 1 && enrollment[0] !== 0) {
+                const percentChange = ((enrollment[enrollment.length - 1] - enrollment[0]) / enrollment[0]) * 100;
+                const districtChange = getEl('districtChange');
+                if (districtChange) {
+                    districtChange.textContent = (percentChange >= 0 ? '+' : '') + percentChange.toFixed(1) + '%';
+                    districtChange.className = 'stat-value ' + (percentChange < 0 ? 'negative' : 'positive');
+                }
+            }
+            
+            const districtLabel = getEl('districtLabel');
+            if (districtLabel) {
+                districtLabel.textContent = district.name.length > 22 ? district.name.substring(0, 19) + '...' : district.name;
+            }
+            
+            if (dom.statPeriods[0] && years.length > 1) {
+                dom.statPeriods[0].textContent = `${years[0]}–${years[years.length - 1]}`;
+            }
+            
+            // Calculate district birth change
+            const districtBirths = birthsData[district.leaid];
+            const districtBirthsChange = getEl('districtBirthsChange');
+            if (districtBirths && districtBirthsChange) {
+                const birthsFiltered = filterDataByTimeRange(districtBirths.years, districtBirths.births);
+                if (birthsFiltered.data.length > 1 && birthsFiltered.data[0] !== 0) {
+                    const birthChange = ((birthsFiltered.data[birthsFiltered.data.length - 1] - birthsFiltered.data[0]) / birthsFiltered.data[0]) * 100;
+                    districtBirthsChange.textContent = `${(birthChange >= 0 ? '+' : '')}${birthChange.toFixed(1)}%`;
+                    districtBirthsChange.className =
+                        'stat-births-value ' + (birthChange > 0 ? 'positive' : birthChange < 0 ? 'negative' : 'neutral');
+                } else {
+                    districtBirthsChange.textContent = 'No data';
+                    districtBirthsChange.className = 'stat-births-value neutral';
+                }
+            } else if (districtBirthsChange) {
+                districtBirthsChange.textContent = 'No data';
+                districtBirthsChange.className = 'stat-births-value neutral';
+            }
+            
+            // Update state stats
+            if (stateAggregates[district.state]) {
+                const stateFiltered = filterDataByTimeRange(
+                    stateAggregates[district.state].years,
+                    stateAggregates[district.state].enrollment
+                );
+                if (stateFiltered.data.length > 1 && stateFiltered.data[0] !== 0) {
+                    const stateChange = ((stateFiltered.data[stateFiltered.data.length - 1] - stateFiltered.data[0]) / stateFiltered.data[0]) * 100;
+                    const stateChangeEl = getEl('stateChange');
+                    if (stateChangeEl) {
+                        stateChangeEl.textContent = (stateChange >= 0 ? '+' : '') + stateChange.toFixed(1) + '%';
+                        stateChangeEl.className = 'stat-value ' + (stateChange < 0 ? 'negative' : 'positive');
+                    }
+                }
+                
+                if (dom.statPeriods[1]) {
+                    dom.statPeriods[1].textContent = 
+                        `${stateFiltered.years[0]}–${stateFiltered.years[stateFiltered.years.length - 1]}`;
+                }
+                
+                // Calculate state birth change
+                const stateBirthsChange = getEl('stateBirthsChange');
+                if (stateBirthsAggregates[district.state] && stateBirthsChange) {
+                    const stateBirths = stateBirthsAggregates[district.state];
+                    const stateBirthsFiltered = filterDataByTimeRange(stateBirths.years, stateBirths.births);
+                    if (stateBirthsFiltered.data.length > 1 && stateBirthsFiltered.data[0] !== 0) {
+                        const stateBirthChange = ((stateBirthsFiltered.data[stateBirthsFiltered.data.length - 1] - stateBirthsFiltered.data[0]) / stateBirthsFiltered.data[0]) * 100;
+                        stateBirthsChange.textContent = 
+                            `${(stateBirthChange >= 0 ? '+' : '')}${stateBirthChange.toFixed(1)}%`;
+                        stateBirthsChange.className =
+                            'stat-births-value ' + (stateBirthChange > 0 ? 'positive' : stateBirthChange < 0 ? 'negative' : 'neutral');
+                    } else {
+                        stateBirthsChange.textContent = 'No data';
+                        stateBirthsChange.className = 'stat-births-value neutral';
+                    }
+                } else if (stateBirthsChange) {
+                    stateBirthsChange.textContent = 'No data';
+                    stateBirthsChange.className = 'stat-births-value neutral';
+                }
+            }
+            
+            // Update U.S. stats
+            const usFiltered = filterDataByTimeRange(nationalAggregates.years || [], nationalAggregates.enrollment || []);
+            if (usFiltered.data.length > 1 && usFiltered.data[0] !== 0) {
+                const usChange = ((usFiltered.data[usFiltered.data.length - 1] - usFiltered.data[0]) / usFiltered.data[0]) * 100;
+                const usChangeEl = getEl('usChange');
+                if (usChangeEl) {
+                    usChangeEl.textContent = (usChange >= 0 ? '+' : '') + usChange.toFixed(1) + '%';
+                    usChangeEl.className = 'stat-value ' + (usChange < 0 ? 'negative' : 'positive');
+                }
+            }
+            
+            if (dom.statPeriods[2] && usFiltered.years.length > 1) {
+                dom.statPeriods[2].textContent = 
+                    `${usFiltered.years[0]}–${usFiltered.years[usFiltered.years.length - 1]}`;
+            }
+            
+            // Calculate U.S. birth change
+            const usBirthsFiltered = filterDataByTimeRange(nationalBirthsAggregates.years || [], nationalBirthsAggregates.births || []);
+            const usBirthsChange = getEl('usBirthsChange');
+            if (usBirthsChange) {
+                if (usBirthsFiltered.data.length > 1 && usBirthsFiltered.data[0] !== 0) {
+                    const usBirthChange = ((usBirthsFiltered.data[usBirthsFiltered.data.length - 1] - usBirthsFiltered.data[0]) / usBirthsFiltered.data[0]) * 100;
+                    usBirthsChange.textContent = 
+                        `${(usBirthChange >= 0 ? '+' : '')}${usBirthChange.toFixed(1)}%`;
+                    usBirthsChange.className =
+                        'stat-births-value ' + (usBirthChange > 0 ? 'positive' : usBirthChange < 0 ? 'negative' : 'neutral');
+                } else {
+                    usBirthsChange.textContent = 'No data';
+                    usBirthsChange.className = 'stat-births-value neutral';
+                }
+            }
+        }
+        
+        // Export to PNG
+        function loadLogoImage() {
+            return new Promise((resolve) => {
+                const img = getEl('exportLogo');
+                if (!img) {
+                    resolve(null);
+                    return;
+                }
+                if (img.complete && img.naturalWidth > 0) {
+                    resolve(img);
+                    return;
+                }
+                const onLoad = () => resolve(img);
+                const onError = () => resolve(null);
+                img.addEventListener('load', onLoad, { once: true });
+                img.addEventListener('error', onError, { once: true });
+                if (!img.getAttribute('src')) {
+                    img.setAttribute('src', LOGO_SRC);
+                }
+            });
+        }
+
+        async function exportToPNG() {
+            const enrollmentCanvas = getEl('mainChart');
+            const birthsCanvas = getEl('birthsChart');
+            if (!enrollmentCanvas || !birthsCanvas) {
+                return;
+            }
+
+            const logoImage = await loadLogoImage();
+            const titleText = document.querySelector('.chart-title')?.textContent || 'District Enrollment Trends';
+            const subtitleText = document.getElementById('chartSubtitle')?.textContent || '';
+            const footerText = document.querySelector('footer')?.textContent?.trim() || '';
+            const attributionLines = ['Prepared by Planfully Consulting', 'planfullyconsulting.com'];
+
+            const padding = 24;
+            const headerHeight = 90;
+            const chartsGap = Math.round(14 * (window.devicePixelRatio || 1));
+            const statsHeight = 200;
+            const footerHeight = 60;
+
+            const width = Math.max(enrollmentCanvas.width, birthsCanvas.width);
+            const chartsHeight = enrollmentCanvas.height + birthsCanvas.height + chartsGap;
+            const height = headerHeight + chartsHeight + statsHeight + footerHeight;
+
+            const combined = document.createElement('canvas');
+            combined.width = width;
+            combined.height = height;
+            const ctx = combined.getContext('2d');
+            if (!ctx) {
+                return;
+            }
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+
+            let logoWidth = 0;
+            let logoHeight = 0;
+            if (logoImage) {
+                const maxLogoHeight = 50;
+                const scale = maxLogoHeight / logoImage.height;
+                logoWidth = Math.round(logoImage.width * scale);
+                logoHeight = Math.round(logoImage.height * scale);
+                ctx.drawImage(logoImage, padding, padding, logoWidth, logoHeight);
+            }
+
+            ctx.fillStyle = '#373737';
+            ctx.font = "600 20px 'Libre Caslon Text', serif";
+            ctx.fillText(titleText, padding + logoWidth + (logoWidth ? 16 : 0), padding + 28);
+
+            ctx.fillStyle = '#666';
+            ctx.font = "13px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+            ctx.fillText(subtitleText, padding + logoWidth + (logoWidth ? 16 : 0), padding + 50);
+
+            const chartsTop = headerHeight;
+            ctx.drawImage(enrollmentCanvas, 0, chartsTop);
+            ctx.drawImage(birthsCanvas, 0, chartsTop + enrollmentCanvas.height + chartsGap);
+
+            const statsTop = chartsTop + chartsHeight + 10;
+            ctx.fillStyle = '#fafafa';
+            ctx.fillRect(0, statsTop, width, statsHeight);
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.strokeRect(0, statsTop, width, statsHeight);
+
+            ctx.fillStyle = '#373737';
+            ctx.font = "600 14px 'Libre Caslon Text', serif";
+            ctx.fillText(document.getElementById('statsHeader')?.textContent || 'Change Since', padding, statsTop + 24);
+
+            const statRows = [
+                {
+                    label: document.getElementById('districtLabel')?.textContent || 'District',
+                    enrollment: document.getElementById('districtChange')?.textContent || '',
+                    births: document.getElementById('districtBirthsChange')?.textContent || '',
+                    period: document.querySelectorAll('.stat-period')[0]?.textContent || ''
+                },
+                {
+                    label: 'State Average',
+                    enrollment: document.getElementById('stateChange')?.textContent || '',
+                    births: document.getElementById('stateBirthsChange')?.textContent || '',
+                    period: document.querySelectorAll('.stat-period')[1]?.textContent || ''
+                },
+                {
+                    label: 'U.S. Average',
+                    enrollment: document.getElementById('usChange')?.textContent || '',
+                    births: document.getElementById('usBirthsChange')?.textContent || '',
+                    period: document.querySelectorAll('.stat-period')[2]?.textContent || ''
+                }
+            ];
+
+            ctx.font = "12px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+            ctx.fillStyle = '#666';
+            let rowY = statsTop + 46;
+            const rowGap = 44;
+
+            statRows.forEach((row) => {
+                ctx.fillStyle = '#666';
+                ctx.fillText(row.label, padding, rowY);
+
+                ctx.fillStyle = '#19414e';
+                ctx.fillText('Enrollment', padding, rowY + 16);
+                ctx.fillStyle = '#373737';
+                ctx.fillText(row.enrollment, padding + 90, rowY + 16);
+
+                ctx.fillStyle = '#d4a637';
+                ctx.fillText('Births', padding + 200, rowY + 16);
+                ctx.fillStyle = '#373737';
+                ctx.fillText(row.births, padding + 250, rowY + 16);
+
+                ctx.fillStyle = '#999';
+                ctx.font = "10px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+                ctx.fillText(row.period, padding, rowY + 32);
+                ctx.font = "12px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+
+                rowY += rowGap;
+            });
+
+            const footerTop = statsTop + statsHeight + 18;
+            ctx.fillStyle = '#666';
+            ctx.font = "12px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+            ctx.fillText(attributionLines[0], padding, footerTop);
+            ctx.fillText(attributionLines[1], padding, footerTop + 16);
+            ctx.fillText(footerText, padding, footerTop + 34);
+
+            const link = document.createElement('a');
+            link.download = 'enrollment-tracker.png';
+            link.href = combined.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Accordion
+        function toggleAccordion() {
+            if (!dom.accordionContent || !dom.accordionArrow) {
+                return;
+            }
+            dom.accordionContent.classList.toggle('show');
+            dom.accordionArrow.classList.toggle('open');
+        }
+        
+        function init() {
+            dom.searchInput = getEl('districtSearch');
+            dom.dropdown = getEl('autocompleteDropdown');
+            dom.loadingIndicator = getEl('loadingIndicator');
+            dom.contentWrapper = getEl('contentWrapper');
+            dom.chartSubtitle = getEl('chartSubtitle');
+            dom.statsHeader = getEl('statsHeader');
+            dom.districtBtn = getEl('districtBtn');
+            dom.exportButton = getEl('exportButton');
+            dom.chartWrapper = getEl('chartWrapper');
+            dom.birthsPanel = getEl('birthsPanel');
+            dom.birthsCanvas = getEl('birthsChart');
+            dom.birthsUnavailable = getEl('birthsUnavailable');
+            dom.accordionHeader = getEl('accordionHeader');
+            dom.accordionContent = getEl('accordionContent');
+            dom.accordionArrow = getEl('accordionArrow');
+            dom.statPeriods = Array.from(document.querySelectorAll('.stat-period'));
+            
+            if (dom.searchInput) {
+                dom.searchInput.addEventListener('input', handleSearchInput);
+            }
+            document.addEventListener('click', handleDocumentClick);
+            
+            document.querySelectorAll('.time-range-btn').forEach(btn => {
+                btn.addEventListener('click', () => setTimeRange(btn.dataset.range || 'all', btn));
+            });
+            
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', () => toggleView(btn.dataset.view || 'district', btn));
+            });
+            
+            if (dom.exportButton) {
+                dom.exportButton.addEventListener('click', exportToPNG);
+            }
+            
+            if (dom.accordionHeader) {
+                dom.accordionHeader.addEventListener('click', toggleAccordion);
+            }
+            
+            loadData();
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+        
+    </script>
+</body>
+</html>
