@@ -512,232 +512,13 @@
             line-height: 1.6;
         }
         
-        /* Mobile Optimization */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            
-            .container {
-                max-width: 100%;
-            }
-            
-            h1 {
-                font-size: 20px;
-                margin-bottom: 15px;
-            }
-            
-            /* Search */
-            .search-container {
-                max-width: 100%;
-                margin-bottom: 15px;
-            }
-            
-            .search-input {
-                font-size: 16px; /* Prevents iOS zoom */
-                padding: 14px 16px;
-            }
-            
-            /* Content stacks vertically */
-            .content-wrapper {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            /* Time Range - wrap and stack */
-            .time-range-container {
-                flex-wrap: wrap;
-                justify-content: flex-start;
-                margin-bottom: 12px;
-            }
-            
-            .time-range-label {
-                width: 100%;
-                margin-bottom: 8px;
-            }
-            
-            .time-range-btn {
-                flex: 1 1 auto;
-                min-width: 85px;
-                padding: 10px 12px;
-                font-size: 13px;
-                touch-action: manipulation; /* Better tap response */
-            }
-            
-            /* View Toggle */
-            .toggle-buttons {
-                flex-wrap: wrap;
-                gap: 8px;
-                margin-bottom: 15px;
-            }
-            
-            .toggle-btn {
-                flex: 1 1 auto;
-                min-width: 100px;
-                padding: 12px 14px;
-                font-size: 14px;
-                touch-action: manipulation;
-            }
-            
-            /* Charts */
-            .chart-container {
-                padding: 15px;
-                margin-bottom: 15px;
-            }
-            
-            .chart-header {
-                margin-bottom: 15px;
-            }
-            
-            .chart-title {
-                font-size: 18px;
-            }
-            
-            .chart-subtitle {
-                font-size: 12px;
-                line-height: 1.4;
-            }
-            
-            .chart-wrapper {
-                height: 280px;
-                margin-bottom: 20px;
-            }
-            
-            /* Export button */
-            .export-button {
-                position: static;
-                display: block;
-                width: 100%;
-                margin-bottom: 15px;
-                padding: 12px 16px;
-                font-size: 14px;
-                touch-action: manipulation;
-            }
-            
-            /* Births Panel */
-            .births-panel {
-                margin-top: 20px;
-            }
-            
-            .births-panel-header {
-                font-size: 14px;
-                margin-bottom: 10px;
-            }
-            
-            #enrollmentPanel {
-                height: 300px;
-            }
-            
-            #birthsPanel {
-                height: 180px;
-            }
-            
-            /* Stats Panel */
-            .stats-panel {
-                width: 100%;
-                padding: 15px;
-            }
-            
-            .stats-panel h2 {
-                font-size: 15px;
-                margin-bottom: 12px;
-            }
-            
-            .stat-item {
-                margin-bottom: 15px;
-                padding-bottom: 15px;
-            }
-            
-            .stat-label {
-                font-size: 11px;
-                margin-bottom: 6px;
-            }
-            
-            .stat-row {
-                margin-bottom: 4px;
-            }
-            
-            .stat-metric {
-                font-size: 11px;
-            }
-            
-            .stat-value,
-            .stat-births-value {
-                font-size: 18px;
-            }
-            
-            .stat-period {
-                font-size: 10px;
-            }
-            
-            /* Accordion */
-            .sources-section {
-                margin: 20px auto 15px;
-                padding-top: 15px;
-            }
-            
-            .accordion-header {
-                padding: 12px 15px;
-            }
-            
-            .accordion-title {
-                font-size: 14px;
-            }
-            
-            .accordion-content {
-                padding: 15px;
-            }
-            
-            .source-heading {
-                font-size: 12px;
-            }
-            
-            .source-item {
-                font-size: 13px;
-            }
-            
-            .methodology-list li {
-                font-size: 13px;
-            }
-            
-            /* Dropdown */
-            .autocomplete-dropdown {
-                max-height: 300px;
-            }
-            
-            .autocomplete-item {
-                padding: 14px 16px;
-            }
-            
-            .autocomplete-item-name {
-                font-size: 15px;
-            }
-        }
-        
-        /* Very small phones */
-        @media (max-width: 400px) {
-            h1 {
-                font-size: 18px;
-            }
-            
-            .chart-title {
-                font-size: 16px;
-            }
-            
-            .chart-wrapper {
-                height: 240px;
-            }
-            
-            #birthsPanel {
-                height: 150px;
-            }
-            
-            .time-range-btn,
-            .toggle-btn {
-                font-size: 12px;
-                padding: 10px 8px;
-                min-width: 75px;
-            }
+        /* Mobile */
+        @media (max-width: 600px) {
+            .content-wrapper { flex-direction: column; }
+            .stats-panel { width: 100%; }
+            .chart-wrapper { height: 350px; }
+            #enrollmentPanel { height: 300px; }
+            #birthsPanel { height: 150px; }
         }
     </style>
 </head>
@@ -1346,15 +1127,18 @@
                     dom.contentWrapper.style.display = 'flex';
                 }
                 
-                initializeChart();
-                
-                // FIX 1: Auto-load Los Angeles Unified as default district
+                // FIX 1: Auto-load Los Angeles Unified (LEAID: 0622710) immediately
                 const lausd = districtsData.find(d => d.leaid === '0622710');
                 if (lausd) {
-                    console.log('Auto-loading Los Angeles Unified as default district...');
-                    selectDistrict(lausd);
+                    console.log('✓ Auto-loading Los Angeles Unified as default district');
+                    selectedDistrict = lausd;
+                    // Initialize charts first
+                    initializeChart();
+                    // Then load LAUSD data (this will update the charts)
+                    loadDistrictData(lausd);
                 } else {
-                    console.warn('Los Angeles Unified (LEAID: 0622710) not found in districts data');
+                    console.warn('⚠️ Los Angeles Unified (LEAID: 0622710) not found - showing sample data');
+                    initializeChart();
                 }
                 
             } catch (error) {
@@ -1648,10 +1432,26 @@
             
             const words = searchTerm.toLowerCase().split(/\s+/);
             
-            const matches = districtsData.filter(d => {
+            let matches = districtsData.filter(d => {
                 const text = `${d.name} ${d.state} ${d.county || ''}`.toLowerCase();
                 return words.every(word => text.includes(word));
-            }).slice(0, 50);
+            });
+            
+            // FIX 2: Sort by enrollment size (largest first)
+            matches.sort((a, b) => {
+                const aData = enrollmentData[a.leaid];
+                const bData = enrollmentData[b.leaid];
+                
+                // Get most recent enrollment for each district
+                const aEnrollment = aData?.enrollment?.[aData.enrollment.length - 1] || 0;
+                const bEnrollment = bData?.enrollment?.[bData.enrollment.length - 1] || 0;
+                
+                // Sort largest first
+                return bEnrollment - aEnrollment;
+            });
+            
+            // Limit to 50 results after sorting
+            matches = matches.slice(0, 50);
             
             displayAutocomplete(matches);
         }
@@ -1892,21 +1692,6 @@
             });
         }
 
-        // Load logo with graceful fallback
-        function loadLogoImage() {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.onload = () => resolve(img);
-                img.onerror = () => {
-                    console.warn('Logo not found - exporting without logo');
-                    resolve(null);
-                };
-                // Try to load logo.png - if it doesn't exist, export will still work
-                img.src = 'logo.png';
-            });
-        }
-
-        // Export with logo if available, without if not
         async function exportToPNG() {
             const enrollmentCanvas = getEl('mainChart');
             const birthsCanvas = getEl('birthsChart');
@@ -1914,7 +1699,6 @@
                 return;
             }
 
-            // Try to load logo (won't fail if missing)
             const logoImage = await loadLogoImage();
             const titleText = document.querySelector('.chart-title')?.textContent || 'District Enrollment Trends';
             const subtitleText = document.getElementById('chartSubtitle')?.textContent || '';
@@ -1942,7 +1726,6 @@
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
 
-            // Draw logo if it loaded successfully
             let logoWidth = 0;
             let logoHeight = 0;
             if (logoImage) {
@@ -1953,7 +1736,6 @@
                 ctx.drawImage(logoImage, padding, padding, logoWidth, logoHeight);
             }
 
-            // Header text (positioned after logo if present)
             ctx.fillStyle = '#373737';
             ctx.font = "600 20px 'Libre Caslon Text', serif";
             ctx.fillText(titleText, padding + logoWidth + (logoWidth ? 16 : 0), padding + 28);
@@ -2024,7 +1806,6 @@
                 rowY += rowGap;
             });
 
-            // Footer with attribution
             const footerTop = statsTop + statsHeight + 18;
             ctx.fillStyle = '#666';
             ctx.font = "12px 'Helvetica Neue', Helvetica, Arial, sans-serif";
