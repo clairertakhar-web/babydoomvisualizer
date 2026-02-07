@@ -514,11 +514,41 @@
         
         /* Mobile */
         @media (max-width: 600px) {
-            .content-wrapper { flex-direction: column; }
-            .stats-panel { width: 100%; }
-            .chart-wrapper { height: 350px; }
-            #enrollmentPanel { height: 300px; }
-            #birthsPanel { height: 150px; }
+            .content-wrapper { 
+                flex-direction: column; 
+            }
+            
+            .stats-panel { 
+                width: 100%;
+                margin-top: 15px;
+            }
+            
+            .chart-wrapper { 
+                height: 350px; 
+            }
+            
+            #enrollmentPanel { 
+                height: 300px; 
+            }
+            
+            #birthsPanel { 
+                height: 150px; 
+            }
+            
+            .export-button {
+                position: static;
+                display: block;
+                margin: 10px auto 15px;
+                width: fit-content;
+            }
+            
+            .chart-title {
+                font-size: 16px;
+            }
+            
+            .chart-container {
+                padding: 15px;
+            }
         }
     </style>
 </head>
@@ -710,7 +740,8 @@
         function withBase(path) {
             return new URL(path.replace(/^\/+/, ''), BASE_URL).toString();
         }
-        const LOGO_SRC = withBase('logo.png');
+        const LOGO_DATA_URI = 'data:image/png;base64,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';
+        const LOGO_SRC = LOGO_DATA_URI;
         
         const dom = {
             searchInput: null,
@@ -1120,25 +1151,67 @@
                 
                 console.log(`✓ Loaded ${districtsData.length} districts`);
                 
-                if (dom.loadingIndicator) {
-                    dom.loadingIndicator.style.display = 'none';
-                }
-                if (dom.contentWrapper) {
-                    dom.contentWrapper.style.display = 'flex';
+                // FIX 1: Auto-load Los Angeles Unified - try multiple methods
+                let lausd = districtsData.find(d => d.leaid === '0622710.0');
+                
+                // Fallback 1: Try without .0
+                if (!lausd) {
+                    lausd = districtsData.find(d => d.leaid === '0622710');
                 }
                 
-                // FIX 1: Auto-load Los Angeles Unified (LEAID: 0622710) immediately
-                const lausd = districtsData.find(d => d.leaid === '0622710');
+                // Fallback 2: Try with different formatting
+                if (!lausd) {
+                    lausd = districtsData.find(d => d.leaid && d.leaid.startsWith('062271'));
+                }
+                
+                // Fallback 3: Search by name
+                if (!lausd) {
+                    lausd = districtsData.find(d => 
+                        d.name && 
+                        d.state === 'California' && 
+                        d.name.toUpperCase().includes('LOS ANGELES UNIFIED')
+                    );
+                }
+                
+                // Fallback 4: Any Los Angeles Unified
+                if (!lausd) {
+                    lausd = districtsData.find(d => 
+                        d.name && 
+                        d.name.toUpperCase().includes('LOS ANGELES') && 
+                        d.name.toUpperCase().includes('UNIFIED')
+                    );
+                }
+                
                 if (lausd) {
-                    console.log('✓ Auto-loading Los Angeles Unified as default district');
+                    console.log('✓ Auto-loading:', lausd.name, '(LEAID:', lausd.leaid + ')');
                     selectedDistrict = lausd;
-                    // Initialize charts first
-                    initializeChart();
-                    // Then load LAUSD data (this will update the charts)
+                    
+                    // Update button text
+                    if (dom.districtBtn) {
+                        dom.districtBtn.textContent = 'L.A. Unified';
+                    }
+                    
+                    // Load LAUSD data (creates charts for first time)
                     loadDistrictData(lausd);
+                    
+                    // Show content after data loads
+                    if (dom.loadingIndicator) {
+                        dom.loadingIndicator.style.display = 'none';
+                    }
+                    if (dom.contentWrapper) {
+                        dom.contentWrapper.style.display = 'flex';
+                    }
                 } else {
-                    console.warn('⚠️ Los Angeles Unified (LEAID: 0622710) not found - showing sample data');
-                    initializeChart();
+                    console.error('⚠️ Could not find Los Angeles Unified');
+                    console.log('First 5 California districts:', 
+                        districtsData.filter(d => d.state === 'California').slice(0, 5).map(d => ({
+                            name: d.name,
+                            leaid: d.leaid
+                        }))
+                    );
+                    if (dom.loadingIndicator) {
+                        dom.loadingIndicator.innerHTML = '⚠️ LAUSD not found. Check console for available districts.';
+                    }
                 }
                 
             } catch (error) {
@@ -1150,28 +1223,8 @@
             }
         }
         
-        // Initialize dual-axis chart
-        function initializeChart() {
-            // Real data from Jefferson County School District No. R-1 (Colorado)
-            // Using this as sample to show realistic trends (not labeled as such)
-            const sampleYears = ['2005', '2006', '2007', '2008', '2009', '2010', '2011', '2012', '2013', '2014', '2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023', '2024'];
-            const sampleEnrollment = [86273, 85942, 85634, 85331, 85012, 84701, 84385, 84056, 83712, 83351, 82971, 82572, 82153, 81713, 81249, 77891, 77142, 76371, 75573, 73513];
-            const sampleBirths = [6891, 7123, 7401, 7156, 6823, 6512, 6301, 6189, 6078, 5967, 5856, 5745, 5634, 5523, 5412, 5301, 5190, 5079, 4968, 4857];
-
-            currentEnrollmentSeries = { years: sampleYears, values: sampleEnrollment, label: 'District Enrollment' };
-            currentBirthSeries = { years: sampleYears, values: sampleBirths, label: 'Births (County)' };
-
-            if (mainChart) {
-                mainChart.destroy();
-            }
-            if (birthsChart) {
-                birthsChart.destroy();
-            }
-            mainChart = createEnrollmentChart(sampleYears, sampleEnrollment, 'District Enrollment');
-            birthsChart = createBirthsChart(sampleYears, sampleBirths, 'Births (County)');
-            chartMode = 'split';
-        }
         
+
         function setActiveButton(selector, target) {
             document.querySelectorAll(selector).forEach(btn => btn.classList.remove('active'));
             if (target) {
@@ -1432,26 +1485,10 @@
             
             const words = searchTerm.toLowerCase().split(/\s+/);
             
-            let matches = districtsData.filter(d => {
+            const matches = districtsData.filter(d => {
                 const text = `${d.name} ${d.state} ${d.county || ''}`.toLowerCase();
                 return words.every(word => text.includes(word));
-            });
-            
-            // FIX 2: Sort by enrollment size (largest first)
-            matches.sort((a, b) => {
-                const aData = enrollmentData[a.leaid];
-                const bData = enrollmentData[b.leaid];
-                
-                // Get most recent enrollment for each district
-                const aEnrollment = aData?.enrollment?.[aData.enrollment.length - 1] || 0;
-                const bEnrollment = bData?.enrollment?.[bData.enrollment.length - 1] || 0;
-                
-                // Sort largest first
-                return bEnrollment - aEnrollment;
-            });
-            
-            // Limit to 50 results after sorting
-            matches = matches.slice(0, 50);
+            }).slice(0, 50);
             
             displayAutocomplete(matches);
         }
@@ -1518,8 +1555,29 @@
                 alert('No enrollment data available for this district');
                 return;
             }
-            if (!mainChart) {
-                return;
+            
+            // Create charts if they don't exist yet
+            if (!mainChart || !birthsChart) {
+                // Get district enrollment series
+                const districtSeries = buildDistrictEnrollmentSeries(districtData);
+                const filtered = filterDataByTimeRange(districtSeries.years, districtSeries.values);
+                
+                // Get district births series
+                const districtBirths = birthsData[district.leaid];
+                let birthsFiltered = { years: [], data: [] };
+                if (districtBirths) {
+                    const birthsSeries = buildBirthSeries(districtBirths);
+                    birthsFiltered = filterDataByTimeRange(birthsSeries.years, birthsSeries.values);
+                }
+                
+                // Create charts with real data
+                mainChart = createEnrollmentChart(filtered.years.map(String), filtered.data, district.name);
+                birthsChart = createBirthsChart(
+                    birthsFiltered.years.map(String), 
+                    birthsFiltered.data, 
+                    districtBirths ? `Births (${districtBirths.county})` : 'Births'
+                );
+                chartMode = 'split';
             }
             
             if (currentView === 'state') {
@@ -1670,28 +1728,36 @@
             }
         }
         
-        // Export to PNG
-        function loadLogoImage() {
-            return new Promise((resolve) => {
-                const img = getEl('exportLogo');
-                if (!img) {
-                    resolve(null);
-                    return;
-                }
+        async function loadImageFromDataUri(dataUri) {
+            if (!dataUri) {
+                return null;
+            }
+
+            const img = new Image();
+            const waitForLoad = () => new Promise((resolve, reject) => {
                 if (img.complete && img.naturalWidth > 0) {
-                    resolve(img);
+                    resolve();
                     return;
                 }
-                const onLoad = () => resolve(img);
-                const onError = () => resolve(null);
-                img.addEventListener('load', onLoad, { once: true });
-                img.addEventListener('error', onError, { once: true });
-                if (!img.getAttribute('src')) {
-                    img.setAttribute('src', LOGO_SRC);
-                }
+                img.onload = () => resolve();
+                img.onerror = () => reject(new Error('Image load failed'));
             });
+
+            img.src = dataUri;
+            if (typeof img.decode === 'function') {
+                try {
+                    await img.decode();
+                } catch (err) {
+                    await waitForLoad();
+                }
+            } else {
+                await waitForLoad();
+            }
+
+            return img;
         }
 
+        // Export to PNG - Professional Board-Ready Format
         async function exportToPNG() {
             const enrollmentCanvas = getEl('mainChart');
             const birthsCanvas = getEl('birthsChart');
@@ -1699,21 +1765,22 @@
                 return;
             }
 
-            const logoImage = await loadLogoImage();
-            const titleText = document.querySelector('.chart-title')?.textContent || 'District Enrollment Trends';
-            const subtitleText = document.getElementById('chartSubtitle')?.textContent || '';
-            const footerText = document.querySelector('footer')?.textContent?.trim() || '';
-            const attributionLines = ['Prepared by Planfully Consulting', 'planfullyconsulting.com'];
-
-            const padding = 24;
-            const headerHeight = 90;
-            const chartsGap = Math.round(14 * (window.devicePixelRatio || 1));
-            const statsHeight = 200;
-            const footerHeight = 60;
+            // Get district information for prominent display
+            const districtName = selectedDistrict ? selectedDistrict.name : 'District';
+            const districtState = selectedDistrict ? selectedDistrict.state : '';
+            const districtCounty = selectedDistrict ? (selectedDistrict.county || '') : '';
+            
+            // Professional layout constants
+            const padding = 40;
+            const headerHeight = 140;
+            const chartsGap = 20;
+            const statsHeight = 240;
+            const footerHeight = 80;
+            const sectionGap = 30;
 
             const width = Math.max(enrollmentCanvas.width, birthsCanvas.width);
             const chartsHeight = enrollmentCanvas.height + birthsCanvas.height + chartsGap;
-            const height = headerHeight + chartsHeight + statsHeight + footerHeight;
+            const height = headerHeight + chartsHeight + statsHeight + footerHeight + sectionGap * 2;
 
             const combined = document.createElement('canvas');
             combined.width = width;
@@ -1723,98 +1790,216 @@
                 return;
             }
 
+            // Professional white background
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
 
-            let logoWidth = 0;
-            let logoHeight = 0;
-            if (logoImage) {
-                const maxLogoHeight = 50;
-                const scale = maxLogoHeight / logoImage.height;
-                logoWidth = Math.round(logoImage.width * scale);
-                logoHeight = Math.round(logoImage.height * scale);
-                ctx.drawImage(logoImage, padding, padding, logoWidth, logoHeight);
+            // ============ HEADER SECTION - Professional Hierarchy ============
+            
+            // Main report title - Large, bold, professional
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = "700 32px 'Libre Caslon Text', serif";
+            ctx.fillText('Enrollment Trends Report', padding, padding + 35);
+            
+            // District name - Prominent, easy to identify
+            ctx.fillStyle = '#19414e';
+            ctx.font = "600 24px 'Libre Caslon Text', serif";
+            const districtText = districtName.length > 45 ? districtName.substring(0, 42) + '...' : districtName;
+            ctx.fillText(districtText, padding, padding + 70);
+            
+            // Location info - Lighter, supporting detail
+            if (districtState || districtCounty) {
+                ctx.fillStyle = '#666';
+                ctx.font = "400 15px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+                const locationText = districtCounty ? `${districtCounty}, ${districtState}` : districtState;
+                ctx.fillText(locationText, padding, padding + 95);
             }
 
-            ctx.fillStyle = '#373737';
-            ctx.font = "600 20px 'Libre Caslon Text', serif";
-            ctx.fillText(titleText, padding + logoWidth + (logoWidth ? 16 : 0), padding + 28);
+            // Subtle divider line
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, headerHeight - 10);
+            ctx.lineTo(width - padding, headerHeight - 10);
+            ctx.stroke();
 
-            ctx.fillStyle = '#666';
-            ctx.font = "13px 'Helvetica Neue', Helvetica, Arial, sans-serif";
-            ctx.fillText(subtitleText, padding + logoWidth + (logoWidth ? 16 : 0), padding + 50);
-
-            const chartsTop = headerHeight;
+            // ============ CHARTS SECTION ============
+            const chartsTop = headerHeight + sectionGap;
             ctx.drawImage(enrollmentCanvas, 0, chartsTop);
             ctx.drawImage(birthsCanvas, 0, chartsTop + enrollmentCanvas.height + chartsGap);
 
-            const statsTop = chartsTop + chartsHeight + 10;
-            ctx.fillStyle = '#fafafa';
-            ctx.fillRect(0, statsTop, width, statsHeight);
+            // ============ KEY FINDINGS SECTION ============
+            const statsTop = chartsTop + chartsHeight + sectionGap;
+            
+            // Section header - Professional styling
+            ctx.fillStyle = '#1a1a1a';
+            ctx.font = "600 18px 'Libre Caslon Text', serif";
+            ctx.fillText('Key Findings', padding, statsTop + 25);
+            
+            // Light background for stats
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(padding, statsTop + 35, width - padding * 2, statsHeight - 45);
+            
+            // Stats border
             ctx.strokeStyle = '#e0e0e0';
-            ctx.strokeRect(0, statsTop, width, statsHeight);
+            ctx.lineWidth = 1;
+            ctx.strokeRect(padding, statsTop + 35, width - padding * 2, statsHeight - 45);
 
-            ctx.fillStyle = '#373737';
-            ctx.font = "600 14px 'Libre Caslon Text', serif";
-            ctx.fillText(document.getElementById('statsHeader')?.textContent || 'Change Since', padding, statsTop + 24);
+            // Get time period for context
+            const timePeriod = document.querySelectorAll('.stat-period')[0]?.textContent || '2005–2024';
 
             const statRows = [
                 {
-                    label: document.getElementById('districtLabel')?.textContent || 'District',
+                    label: districtName.length > 35 ? districtName.substring(0, 32) + '...' : districtName,
                     enrollment: document.getElementById('districtChange')?.textContent || '',
                     births: document.getElementById('districtBirthsChange')?.textContent || '',
-                    period: document.querySelectorAll('.stat-period')[0]?.textContent || ''
+                    period: timePeriod,
+                    isPrimary: true
                 },
                 {
-                    label: 'State Average',
+                    label: `${districtState} Average`,
                     enrollment: document.getElementById('stateChange')?.textContent || '',
                     births: document.getElementById('stateBirthsChange')?.textContent || '',
-                    period: document.querySelectorAll('.stat-period')[1]?.textContent || ''
+                    period: timePeriod,
+                    isPrimary: false
                 },
                 {
                     label: 'U.S. Average',
                     enrollment: document.getElementById('usChange')?.textContent || '',
                     births: document.getElementById('usBirthsChange')?.textContent || '',
-                    period: document.querySelectorAll('.stat-period')[2]?.textContent || ''
+                    period: timePeriod,
+                    isPrimary: false
                 }
             ];
 
-            ctx.font = "12px 'Helvetica Neue', Helvetica, Arial, sans-serif";
-            ctx.fillStyle = '#666';
-            let rowY = statsTop + 46;
-            const rowGap = 44;
+            let rowY = statsTop + 65;
+            const rowHeight = 55;
 
-            statRows.forEach((row) => {
-                ctx.fillStyle = '#666';
-                ctx.fillText(row.label, padding, rowY);
+            statRows.forEach((row, index) => {
+                // Row label - Bold for district, regular for comparisons
+                ctx.fillStyle = row.isPrimary ? '#1a1a1a' : '#4a4a4a';
+                ctx.font = row.isPrimary ? 
+                    "600 14px 'Helvetica Neue', Helvetica, Arial, sans-serif" : 
+                    "500 13px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+                ctx.fillText(row.label, padding + 20, rowY);
 
-                ctx.fillStyle = '#19414e';
-                ctx.fillText('Enrollment', padding, rowY + 16);
-                ctx.fillStyle = '#373737';
-                ctx.fillText(row.enrollment, padding + 90, rowY + 16);
+                // Enrollment change - Professional presentation
+                const enrollX = padding + 320;
+                ctx.fillStyle = '#5a5a5a';
+                ctx.font = "500 12px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+                ctx.fillText('Enrollment', enrollX, rowY);
+                
+                // Enrollment value - Color-coded, prominent
+                const enrollValue = row.enrollment;
+                ctx.fillStyle = enrollValue.startsWith('-') ? '#c53030' : enrollValue.startsWith('+') ? '#2f855a' : '#5a5a5a';
+                ctx.font = row.isPrimary ? 
+                    "700 20px 'Helvetica Neue', Helvetica, Arial, sans-serif" : 
+                    "600 16px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+                ctx.fillText(enrollValue, enrollX + 90, rowY);
 
-                ctx.fillStyle = '#d4a637';
-                ctx.fillText('Births', padding + 200, rowY + 16);
-                ctx.fillStyle = '#373737';
-                ctx.fillText(row.births, padding + 250, rowY + 16);
+                // Births change - Subdued but clear
+                const birthsX = enrollX + 200;
+                ctx.fillStyle = '#7a7a7a';
+                ctx.font = "500 12px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+                ctx.fillText('Births', birthsX, rowY);
+                
+                // Births value - Muted color
+                const birthsValue = row.births;
+                ctx.fillStyle = birthsValue.startsWith('-') ? '#9b4444' : birthsValue.startsWith('+') ? '#4a7c59' : '#7a7a7a';
+                ctx.font = row.isPrimary ? 
+                    "600 16px 'Helvetica Neue', Helvetica, Arial, sans-serif" : 
+                    "500 14px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+                ctx.fillText(birthsValue, birthsX + 60, rowY);
 
-                ctx.fillStyle = '#999';
-                ctx.font = "10px 'Helvetica Neue', Helvetica, Arial, sans-serif";
-                ctx.fillText(row.period, padding, rowY + 32);
-                ctx.font = "12px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+                // Time period - Small, supporting detail
+                ctx.fillStyle = '#9a9a9a';
+                ctx.font = "400 11px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+                ctx.fillText(row.period, padding + 20, rowY + 18);
 
-                rowY += rowGap;
+                // Subtle separator between rows
+                if (index < statRows.length - 1) {
+                    ctx.strokeStyle = '#e8e8e8';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(padding + 20, rowY + 28);
+                    ctx.lineTo(width - padding - 20, rowY + 28);
+                    ctx.stroke();
+                }
+
+                rowY += rowHeight;
             });
 
-            const footerTop = statsTop + statsHeight + 18;
-            ctx.fillStyle = '#666';
-            ctx.font = "12px 'Helvetica Neue', Helvetica, Arial, sans-serif";
-            ctx.fillText(attributionLines[0], padding, footerTop);
-            ctx.fillText(attributionLines[1], padding, footerTop + 16);
-            ctx.fillText(footerText, padding, footerTop + 34);
+            // ============ FOOTER SECTION - Professional Branding ============
+            const footerTop = statsTop + statsHeight + 20;
+            
+            // Footer divider
+            ctx.strokeStyle = '#d0d0d0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, footerTop);
+            ctx.lineTo(width - padding, footerTop);
+            ctx.stroke();
+
+            let footerLogoImage = null;
+            try {
+                footerLogoImage = await loadImageFromDataUri(LOGO_DATA_URI);
+            } catch (error) {
+                console.warn('Export logo failed to load; continuing without logo.', error);
+            }
+
+            const logoMaxHeight = 32;
+            const logoTextPadding = 12;
+            let footerTextX = padding;
+
+            if (footerLogoImage && footerLogoImage.naturalWidth > 0 && footerLogoImage.naturalHeight > 0) {
+                const logoScale = Math.min(logoMaxHeight / footerLogoImage.naturalHeight, 1);
+                const logoWidth = footerLogoImage.naturalWidth * logoScale;
+                const logoHeight = footerLogoImage.naturalHeight * logoScale;
+                const logoY = footerTop + 12;
+                ctx.drawImage(footerLogoImage, padding, logoY, logoWidth, logoHeight);
+                footerTextX = padding + logoWidth + logoTextPadding;
+            }
+
+            // Branding - Professional, not intrusive
+            ctx.fillStyle = '#5a5a5a';
+            ctx.font = "500 13px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+            ctx.fillText('Prepared by Planfully Consulting', footerTextX, footerTop + 25);
+            
+            // Website - Lighter
+            ctx.fillStyle = '#8a8a8a';
+            ctx.font = "400 12px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+            ctx.fillText('planfullyconsulting.com', footerTextX, footerTop + 45);
+
+            // Data sources - Right-aligned, professional
+            let dataSource = 'Data: NCES Common Core of Data, CDC Natality Files';
+            const reportDate = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            ctx.font = "500 13px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+            const preparedByWidth = ctx.measureText('Prepared by Planfully Consulting').width;
+            ctx.font = "400 12px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+            const websiteWidth = ctx.measureText('planfullyconsulting.com').width;
+            const leftBlockRight = footerTextX + Math.max(preparedByWidth, websiteWidth);
+
+            ctx.font = "400 11px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+            const fullDataSourceWidth = ctx.measureText(dataSource).width;
+            const rightBlockLeft = width - padding - fullDataSourceWidth;
+            if (leftBlockRight + 24 > rightBlockLeft) {
+                dataSource = 'Data: NCES CCD, CDC Natality Files';
+            }
+
+            ctx.fillStyle = '#7a7a7a';
+            ctx.font = "400 11px 'Helvetica Neue', Helvetica, Arial, sans-serif";
+            ctx.textAlign = 'right';
+            ctx.fillText(dataSource, width - padding, footerTop + 25);
+            ctx.fillText(reportDate, width - padding, footerTop + 45);
+            ctx.textAlign = 'left'; // Reset
+
+            // Generate filename with district name
+            const sanitizedName = districtName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            const filename = `enrollment_trends_${sanitizedName}.png`;
 
             const link = document.createElement('a');
-            link.download = 'enrollment-tracker.png';
+            link.download = filename;
             link.href = combined.toDataURL('image/png');
             link.click();
         }
