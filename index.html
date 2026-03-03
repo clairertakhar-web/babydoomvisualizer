@@ -1528,7 +1528,7 @@
                 return words.every(word => text.includes(word));
             });
             // Sort other matches alphabetically
-            otherMatches.sort((a, b) => a.name.localeCompare(b.name));
+            otherMatches.sort((a, b) => a.district_name.localeCompare(b.district_name));
 
             // ── Combine and cap at 50 ──
             const allMatches = [
@@ -1567,8 +1567,8 @@
                         ? Math.round(entry.enrollment / 1000) + 'K'
                         : null;
                     const detail = enrollmentK
-                        ? `${entry.state} · ${enrollmentK} students`
-                        : entry.state;
+                        ? `${entry.state || ''} · ${enrollmentK} students`
+                        : (entry.state || '');
                     item.innerHTML = `
                         <div class="autocomplete-item-name">${entry.displayName}</div>
                         <div class="autocomplete-item-details">${detail}</div>
