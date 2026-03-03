@@ -726,6 +726,7 @@
         let birthsData = {};
         let stateBirthsAggregates = {};
         let nationalBirthsAggregates = {};
+        let top1000Data = {};
         
         let mainChart;
         let birthsChart;
@@ -1131,6 +1132,19 @@
 
         async function loadData() {
             try {
+                // Load top_1000_districts.json separately with graceful fallback
+                try {
+                    const top1000Response = await fetch(withBase('top_1000_districts.json'));
+                    if (top1000Response.ok) {
+                        top1000Data = await top1000Response.json();
+                        console.log(`✓ Loaded ${Object.keys(top1000Data).length} top 1000 districts`);
+                    } else {
+                        console.warn('⚠️ top_1000_districts.json not found - enhanced search disabled');
+                    }
+                } catch (top1000Error) {
+                    console.warn('⚠️ Could not load top_1000_districts.json - enhanced search disabled', top1000Error);
+                }
+
                 const [districts, enrollment, stateAgg, nationalAgg, births, stateBirths, nationalBirths] = await Promise.all([
                     fetchJson('districts.json'),
                     fetchJson('enrollment_data.json'),
@@ -1151,61 +1165,39 @@
                 
                 console.log(`✓ Loaded ${districtsData.length} districts`);
                 
-                // FIX 1: Auto-load Los Angeles Unified - try multiple methods
+                // Auto-load Los Angeles Unified - try multiple methods
                 let lausd = districtsData.find(d => d.leaid === '0622710.0');
-                
-                // Fallback 1: Try without .0
-                if (!lausd) {
-                    lausd = districtsData.find(d => d.leaid === '0622710');
-                }
-                
-                // Fallback 2: Try with different formatting
-                if (!lausd) {
-                    lausd = districtsData.find(d => d.leaid && d.leaid.startsWith('062271'));
-                }
-                
-                // Fallback 3: Search by name
-                if (!lausd) {
-                    lausd = districtsData.find(d => 
-                        d.name && 
-                        d.state === 'California' && 
-                        d.name.toUpperCase().includes('LOS ANGELES UNIFIED')
-                    );
-                }
-                
-                // Fallback 4: Any Los Angeles Unified
-                if (!lausd) {
-                    lausd = districtsData.find(d => 
-                        d.name && 
-                        d.name.toUpperCase().includes('LOS ANGELES') && 
-                        d.name.toUpperCase().includes('UNIFIED')
-                    );
-                }
+                if (!lausd) lausd = districtsData.find(d => d.leaid === '0622710');
+                if (!lausd) lausd = districtsData.find(d => d.leaid && d.leaid.startsWith('062271'));
+                if (!lausd) lausd = districtsData.find(d =>
+                    d.district_name && d.state_name === 'California' && d.district_name.toUpperCase().includes('LOS ANGELES UNIFIED')
+                );
+                if (!lausd) lausd = districtsData.find(d =>
+                    d.district_name && d.district_name.toUpperCase().includes('LOS ANGELES') && d.district_name.toUpperCase().includes('UNIFIED')
+                );
                 
                 if (lausd) {
-                    console.log('✓ Auto-loading:', lausd.name, '(LEAID:', lausd.leaid + ')');
+                    const displayName = getDisplayName(lausd);
+                    console.log('✓ Auto-loading:', displayName, '(LEAID:', lausd.leaid + ')');
                     selectedDistrict = lausd;
                     
-                    // Update button text
+                    // Update button text using displayName
                     if (dom.districtBtn) {
-                        dom.districtBtn.textContent = 'L.A. Unified';
+                        dom.districtBtn.textContent =
+                            displayName.length > 25 ? displayName.substring(0, 22) + '...' : displayName;
                     }
                     
                     // Load LAUSD data (creates charts for first time)
                     loadDistrictData(lausd);
                     
                     // Show content after data loads
-                    if (dom.loadingIndicator) {
-                        dom.loadingIndicator.style.display = 'none';
-                    }
-                    if (dom.contentWrapper) {
-                        dom.contentWrapper.style.display = 'flex';
-                    }
+                    if (dom.loadingIndicator) dom.loadingIndicator.style.display = 'none';
+                    if (dom.contentWrapper) dom.contentWrapper.style.display = 'flex';
                 } else {
                     console.error('⚠️ Could not find Los Angeles Unified');
                     console.log('First 5 California districts:', 
-                        districtsData.filter(d => d.state === 'California').slice(0, 5).map(d => ({
-                            name: d.name,
+                        districtsData.filter(d => d.state_name === 'California').slice(0, 5).map(d => ({
+                            name: d.district_name,
                             leaid: d.leaid
                         }))
                     );
@@ -1267,57 +1259,55 @@
             };
         }
 
-        function buildDistrictEnrollmentSeries(districtData) {
-            if (!districtData || !Array.isArray(districtData.years) || !Array.isArray(districtData.enrollment)) {
+        // flatDictToSeries: parse our JSON format {"2005": 1234, "2006": 1289, ...}
+        // into {years: [2005, 2006, ...], values: [1234, 1289, ...]}
+        function flatDictToSeries(obj) {
+            if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
                 return { years: [], values: [] };
             }
-            return { years: districtData.years, values: districtData.enrollment };
+            const years = Object.keys(obj).map(Number).sort((a, b) => a - b);
+            const values = years.map(yr => obj[String(yr)]);
+            return { years, values };
+        }
+
+        function buildDistrictEnrollmentSeries(districtData) {
+            return flatDictToSeries(districtData);
         }
 
         function aggregateEnrollmentFromDistricts(matchFn) {
             const totalsByYear = {};
             districtsData.forEach(district => {
-                if (!matchFn(district)) {
-                    return;
-                }
+                if (!matchFn(district)) return;
                 const data = enrollmentData[district.leaid];
-                if (!data || !Array.isArray(data.years) || !Array.isArray(data.enrollment)) {
-                    return;
-                }
-                data.years.forEach((year, idx) => {
-                    const value = data.enrollment[idx];
-                    if (typeof value !== 'number') {
-                        return;
+                if (!data || typeof data !== 'object') return;
+                Object.entries(data).forEach(([yr, val]) => {
+                    if (typeof val === 'number') {
+                        totalsByYear[yr] = (totalsByYear[yr] || 0) + val;
                     }
-                    totalsByYear[year] = (totalsByYear[year] || 0) + value;
                 });
             });
-
             const years = Object.keys(totalsByYear).map(Number).sort((a, b) => a - b);
-            const values = years.map(year => totalsByYear[year]);
+            const values = years.map(yr => totalsByYear[String(yr)]);
             return { years, values };
         }
 
         function buildStateAggregateEnrollmentSeries(stateCode) {
             const stateData = stateAggregates[stateCode];
-            if (stateData && Array.isArray(stateData.years) && Array.isArray(stateData.enrollment)) {
-                return { years: stateData.years, values: stateData.enrollment };
+            if (stateData && typeof stateData === 'object' && !Array.isArray(stateData)) {
+                return flatDictToSeries(stateData);
             }
-            return aggregateEnrollmentFromDistricts(district => district.state === stateCode);
+            return aggregateEnrollmentFromDistricts(district => district.state_name === stateCode);
         }
 
         function buildUSAggregateEnrollmentSeries() {
-            if (nationalAggregates && Array.isArray(nationalAggregates.years) && Array.isArray(nationalAggregates.enrollment)) {
-                return { years: nationalAggregates.years, values: nationalAggregates.enrollment };
+            if (nationalAggregates && typeof nationalAggregates === 'object' && !Array.isArray(nationalAggregates)) {
+                return flatDictToSeries(nationalAggregates);
             }
             return aggregateEnrollmentFromDistricts(() => true);
         }
 
         function buildBirthSeries(birthsSeries) {
-            if (!birthsSeries || !Array.isArray(birthsSeries.years) || !Array.isArray(birthsSeries.births)) {
-                return { years: [], values: [] };
-            }
-            return { years: birthsSeries.years, values: birthsSeries.births };
+            return flatDictToSeries(birthsSeries);
         }
 
         function setEnrollmentSeries(series, label) {
@@ -1427,7 +1417,7 @@
                 // District enrollment: show data
                 const districtData = enrollmentData[selectedDistrict.leaid];
                 const districtSeries = buildDistrictEnrollmentSeries(districtData);
-                setEnrollmentSeries(districtSeries, selectedDistrict.name);
+                setEnrollmentSeries(districtSeries, getDisplayName(selectedDistrict));
                 
                 // State/US: empty data (causes smooth fade out)
                 
@@ -1435,7 +1425,7 @@
                 const districtBirths = birthsData[selectedDistrict.leaid];
                 if (districtBirths) {
                     const birthsSeries = buildBirthSeries(districtBirths);
-                    setBirthSeries(birthsSeries, `Births (${districtBirths.county})`);
+                    setBirthSeries(birthsSeries, `Births (${district.county_name})`);
                 } else {
                     setBirthSeries({ years: [], values: [] }, 'Births');
                 }
@@ -1451,7 +1441,7 @@
                 if (stateBirthsAggregates[selectedDistrict.state]) {
                     const stateBirths = stateBirthsAggregates[selectedDistrict.state];
                     const birthsSeries = buildBirthSeries(stateBirths);
-                    setBirthSeries(birthsSeries, `Births (${selectedDistrict.state})`);
+                    setBirthSeries(birthsSeries, `Births (${selectedDistrict.state_name})`);
                 } else {
                     setBirthSeries({ years: [], values: [] }, 'Births');
                 }
@@ -1471,70 +1461,142 @@
             refreshChartRendering();
         }
         
+        // ── Top 1000 helpers ──────────────────────────────────────────────
+        // Normalize a LEAID string for lookup: strip leading zeros and ".0" suffix
+        function normalizeLeaid(leaid) {
+            return String(leaid || '').replace(/^0+/, '').replace(/\.0$/, '');
+        }
+
+        // Return the top1000Data entry for a district, or null if not found
+        function getTop1000Entry(district) {
+            if (!district || !Object.keys(top1000Data).length) return null;
+            const raw = String(district.leaid || '');
+            const norm = normalizeLeaid(raw);
+            return top1000Data[raw] || top1000Data[norm] || top1000Data[norm + '.0'] || null;
+        }
+
+        // Return the best display name for a district
+        function getDisplayName(district) {
+            if (!district) return '';
+            const entry = getTop1000Entry(district);
+            return entry ? entry.displayName : district.district_name;
+        }
+        // ─────────────────────────────────────────────────────────────────
+
         // Search functionality
         function handleSearchInput(e) {
-            if (!dom.dropdown) {
-                return;
-            }
+            if (!dom.dropdown) return;
             const searchTerm = e.target.value.trim();
-            
+
             if (searchTerm.length < 2) {
                 dom.dropdown.classList.remove('show');
                 return;
             }
-            
+
             const words = searchTerm.toLowerCase().split(/\s+/);
-            
-            const matches = districtsData.filter(d => {
-                const text = `${d.name} ${d.state} ${d.county || ''}`.toLowerCase();
+            const foundLeaids = new Set();
+
+            // ── Phase 1: Search top 1000 districts by displayName, ncesName, and aliases ──
+            const top1000Matches = [];
+            if (Object.keys(top1000Data).length > 0) {
+                Object.entries(top1000Data).forEach(([leaid, entry]) => {
+                    const searchableText = [
+                        entry.displayName || '',
+                        entry.ncesName || '',
+                        ...(entry.aliases || [])
+                    ].join(' ').toLowerCase();
+
+                    if (words.every(word => searchableText.includes(word))) {
+                        const normEntryLeaid = normalizeLeaid(leaid);
+                        const district = districtsData.find(d => {
+                            return normalizeLeaid(d.leaid) === normEntryLeaid;
+                        });
+                        if (district) {
+                            top1000Matches.push({ district, entry });
+                            foundLeaids.add(district.leaid);
+                        }
+                    }
+                });
+                // Sort top 1000 matches by enrollment descending (largest first)
+                top1000Matches.sort((a, b) => (b.entry.enrollment || 0) - (a.entry.enrollment || 0));
+            }
+
+            // ── Phase 2: Search remaining districts by NCES name/state/county ──
+            const otherMatches = districtsData.filter(d => {
+                if (foundLeaids.has(d.leaid)) return false;
+                const text = `${d.district_name} ${d.state_name} ${d.county_name || ''}`.toLowerCase();
                 return words.every(word => text.includes(word));
-            }).slice(0, 50);
-            
-            displayAutocomplete(matches);
+            });
+            // Sort other matches alphabetically
+            otherMatches.sort((a, b) => a.name.localeCompare(b.name));
+
+            // ── Combine and cap at 50 ──
+            const allMatches = [
+                ...top1000Matches.map(m => m.district),
+                ...otherMatches
+            ].slice(0, 50);
+
+            displayAutocomplete(allMatches);
         }
         
         function displayAutocomplete(matches) {
-            if (!dom.dropdown) {
-                return;
-            }
+            if (!dom.dropdown) return;
             dom.dropdown.innerHTML = '';
-            
+
             if (matches.length === 0) {
                 dom.dropdown.innerHTML = '<div style="padding:12px 16px;color:#999;">No districts found</div>';
                 dom.dropdown.classList.add('show');
                 return;
             }
-            
+
             const counter = document.createElement('div');
             counter.className = 'autocomplete-counter';
-            counter.textContent = matches.length === 50 ? 
-                `Showing 50 results` : 
+            counter.textContent = matches.length === 50 ?
+                `Showing 50 results` :
                 `${matches.length} ${matches.length === 1 ? 'district' : 'districts'} found`;
             dom.dropdown.appendChild(counter);
-            
+
             matches.forEach(district => {
+                const entry = getTop1000Entry(district);
                 const item = document.createElement('div');
                 item.className = 'autocomplete-item';
-                item.innerHTML = `
-                    <div class="autocomplete-item-name">${district.name}</div>
-                    <div class="autocomplete-item-details">${district.state}${district.county ? ' - ' + district.county : ''}</div>
-                `;
+
+                if (entry) {
+                    // Enhanced display for top 1000: friendly name + enrollment size
+                    const enrollmentK = entry.enrollment
+                        ? Math.round(entry.enrollment / 1000) + 'K'
+                        : null;
+                    const detail = enrollmentK
+                        ? `${entry.state} · ${enrollmentK} students`
+                        : entry.state;
+                    item.innerHTML = `
+                        <div class="autocomplete-item-name">${entry.displayName}</div>
+                        <div class="autocomplete-item-details">${detail}</div>
+                    `;
+                } else {
+                    // Standard display for other districts
+                    item.innerHTML = `
+                        <div class="autocomplete-item-name">${district.district_name}</div>
+                        <div class="autocomplete-item-details">${district.state_name}${district.county_name ? ' - ' + district.county_name : ''}</div>
+                    `;
+                }
+
                 item.addEventListener('click', () => selectDistrict(district));
                 dom.dropdown.appendChild(item);
             });
-            
+
             dom.dropdown.classList.add('show');
         }
         
         function selectDistrict(district) {
             selectedDistrict = district;
+            const displayName = getDisplayName(district);
             if (dom.searchInput) {
-                dom.searchInput.value = `${district.name} (${district.state})`;
+                dom.searchInput.value = `${displayName} (${district.state_name})`;
             }
             if (dom.dropdown) {
                 dom.dropdown.classList.remove('show');
             }
-            
             loadDistrictData(district);
         }
         
@@ -1571,41 +1633,42 @@
                 }
                 
                 // Create charts with real data
-                mainChart = createEnrollmentChart(filtered.years.map(String), filtered.data, district.name);
+                mainChart = createEnrollmentChart(filtered.years.map(String), filtered.data, getDisplayName(district));
                 birthsChart = createBirthsChart(
                     birthsFiltered.years.map(String), 
                     birthsFiltered.data, 
-                    districtBirths ? `Births (${districtBirths.county})` : 'Births'
+                    districtBirths ? `Births (${district.county_name})` : 'Births'
                 );
                 chartMode = 'split';
             }
             
             if (currentView === 'state') {
-                const stateSeries = buildStateAggregateEnrollmentSeries(district.state);
+                const stateSeries = buildStateAggregateEnrollmentSeries(district.state_name);
                 setEnrollmentSeries(stateSeries, 'State Average');
             } else if (currentView === 'us') {
                 const usSeries = buildUSAggregateEnrollmentSeries();
                 setEnrollmentSeries(usSeries, 'U.S. Average');
             } else {
                 const districtSeries = buildDistrictEnrollmentSeries(districtData);
-                setEnrollmentSeries(districtSeries, district.name);
+                setEnrollmentSeries(districtSeries, getDisplayName(district));
             }
             
             // Update births
             const districtBirths = birthsData[district.leaid];
             if (districtBirths) {
                 const birthsSeries = buildBirthSeries(districtBirths);
-                setBirthSeries(birthsSeries, `Births (${districtBirths.county})`);
+                setBirthSeries(birthsSeries, `Births (${district.county_name})`);
             } else {
                 setBirthSeries({ years: [], values: [] }, 'Births');
             }
             
             refreshChartRendering();
             
-            // Update button
+            // Update button - use displayName if available
             if (dom.districtBtn) {
-                dom.districtBtn.textContent = 
-                    district.name.length > 25 ? district.name.substring(0, 22) + '...' : district.name;
+                const displayName = getDisplayName(district);
+                dom.districtBtn.textContent =
+                    displayName.length > 25 ? displayName.substring(0, 22) + '...' : displayName;
             }
             
             // Update stats
@@ -1613,7 +1676,8 @@
         }
         
         function updateStatsPanel(district, districtData) {
-            const filtered = filterDataByTimeRange(districtData.years || [], districtData.enrollment || []);
+            const _dSeries = flatDictToSeries(districtData);
+            const filtered = filterDataByTimeRange(_dSeries.years, _dSeries.values);
             const years = filtered.years;
             const enrollment = filtered.data;
             
@@ -1628,7 +1692,8 @@
             
             const districtLabel = getEl('districtLabel');
             if (districtLabel) {
-                districtLabel.textContent = district.name.length > 22 ? district.name.substring(0, 19) + '...' : district.name;
+                const displayName = getDisplayName(district);
+                districtLabel.textContent = displayName.length > 22 ? displayName.substring(0, 19) + '...' : displayName;
             }
             
             if (dom.statPeriods[0] && years.length > 1) {
@@ -1639,7 +1704,7 @@
             const districtBirths = birthsData[district.leaid];
             const districtBirthsChange = getEl('districtBirthsChange');
             if (districtBirths && districtBirthsChange) {
-                const birthsFiltered = filterDataByTimeRange(districtBirths.years, districtBirths.births);
+                const _bSeries = flatDictToSeries(districtBirths); const birthsFiltered = filterDataByTimeRange(_bSeries.years, _bSeries.values);
                 if (birthsFiltered.data.length > 1 && birthsFiltered.data[0] !== 0) {
                     const birthChange = ((birthsFiltered.data[birthsFiltered.data.length - 1] - birthsFiltered.data[0]) / birthsFiltered.data[0]) * 100;
                     districtBirthsChange.textContent = `${(birthChange >= 0 ? '+' : '')}${birthChange.toFixed(1)}%`;
@@ -1655,11 +1720,9 @@
             }
             
             // Update state stats
-            if (stateAggregates[district.state]) {
-                const stateFiltered = filterDataByTimeRange(
-                    stateAggregates[district.state].years,
-                    stateAggregates[district.state].enrollment
-                );
+            if (stateAggregates[district.state_name]) {
+                const _sSeries = flatDictToSeries(stateAggregates[district.state_name]);
+                const stateFiltered = filterDataByTimeRange(_sSeries.years, _sSeries.values);
                 if (stateFiltered.data.length > 1 && stateFiltered.data[0] !== 0) {
                     const stateChange = ((stateFiltered.data[stateFiltered.data.length - 1] - stateFiltered.data[0]) / stateFiltered.data[0]) * 100;
                     const stateChangeEl = getEl('stateChange');
@@ -1676,9 +1739,9 @@
                 
                 // Calculate state birth change
                 const stateBirthsChange = getEl('stateBirthsChange');
-                if (stateBirthsAggregates[district.state] && stateBirthsChange) {
-                    const stateBirths = stateBirthsAggregates[district.state];
-                    const stateBirthsFiltered = filterDataByTimeRange(stateBirths.years, stateBirths.births);
+                if (stateBirthsAggregates[district.state_name] && stateBirthsChange) {
+                    const stateBirths = stateBirthsAggregates[district.state_name];
+                    const _sbSeries = flatDictToSeries(stateBirths); const stateBirthsFiltered = filterDataByTimeRange(_sbSeries.years, _sbSeries.values);
                     if (stateBirthsFiltered.data.length > 1 && stateBirthsFiltered.data[0] !== 0) {
                         const stateBirthChange = ((stateBirthsFiltered.data[stateBirthsFiltered.data.length - 1] - stateBirthsFiltered.data[0]) / stateBirthsFiltered.data[0]) * 100;
                         stateBirthsChange.textContent = 
@@ -1696,7 +1759,7 @@
             }
             
             // Update U.S. stats
-            const usFiltered = filterDataByTimeRange(nationalAggregates.years || [], nationalAggregates.enrollment || []);
+            const _usSeries = flatDictToSeries(nationalAggregates); const usFiltered = filterDataByTimeRange(_usSeries.years, _usSeries.values);
             if (usFiltered.data.length > 1 && usFiltered.data[0] !== 0) {
                 const usChange = ((usFiltered.data[usFiltered.data.length - 1] - usFiltered.data[0]) / usFiltered.data[0]) * 100;
                 const usChangeEl = getEl('usChange');
@@ -1712,7 +1775,7 @@
             }
             
             // Calculate U.S. birth change
-            const usBirthsFiltered = filterDataByTimeRange(nationalBirthsAggregates.years || [], nationalBirthsAggregates.births || []);
+            const _ubSeries = flatDictToSeries(nationalBirthsAggregates); const usBirthsFiltered = filterDataByTimeRange(_ubSeries.years, _ubSeries.values);
             const usBirthsChange = getEl('usBirthsChange');
             if (usBirthsChange) {
                 if (usBirthsFiltered.data.length > 1 && usBirthsFiltered.data[0] !== 0) {
