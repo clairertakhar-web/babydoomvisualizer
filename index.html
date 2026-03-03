@@ -1389,7 +1389,7 @@
             if (mainChart.options.plugins && mainChart.options.plugins.tooltip) {
                 mainChart.options.plugins.tooltip.callbacks = getTooltipCallbacks();
             }
-            mainChart.update();
+            mainChart.update('none');
 
             birthsChart.data.labels = labels;
             birthsChart.data.datasets[0].data = birthsValues;
@@ -1397,7 +1397,7 @@
             if (birthsChart.options.plugins && birthsChart.options.plugins.tooltip) {
                 birthsChart.options.plugins.tooltip.callbacks = getTooltipCallbacks();
             }
-            birthsChart.update();
+            birthsChart.update('none');
         }
         
         // View toggle
@@ -1414,47 +1414,35 @@
             // This makes enrollment lines transition smoothly like births does
             
             if (view === 'district') {
-                // District enrollment: show data
                 const districtData = enrollmentData[selectedDistrict.leaid];
                 const districtSeries = buildDistrictEnrollmentSeries(districtData);
                 setEnrollmentSeries(districtSeries, getDisplayName(selectedDistrict));
-                
-                // State/US: empty data (causes smooth fade out)
-                
-                // District births
+
                 const districtBirths = birthsData[selectedDistrict.leaid];
-                if (districtBirths) {
+                if (districtBirths && Object.keys(districtBirths).length > 0) {
                     const birthsSeries = buildBirthSeries(districtBirths);
-                    setBirthSeries(birthsSeries, `Births (${district.county_name})`);
+                    setBirthSeries(birthsSeries, `Births (${selectedDistrict.county_name})`);
                 } else {
                     setBirthSeries({ years: [], values: [] }, 'Births');
                 }
-                
+
             } else if (view === 'state') {
-                // State enrollment: show data
-                const stateSeries = buildStateAggregateEnrollmentSeries(selectedDistrict.state);
+                const stateSeries = buildStateAggregateEnrollmentSeries(selectedDistrict.state_name);
                 setEnrollmentSeries(stateSeries, 'State Average');
-                
-                // District/US: empty data
-                
-                // State births
-                if (stateBirthsAggregates[selectedDistrict.state]) {
-                    const stateBirths = stateBirthsAggregates[selectedDistrict.state];
-                    const birthsSeries = buildBirthSeries(stateBirths);
+
+                if (stateBirthsAggregates[selectedDistrict.state_name]) {
+                    const stateBirths = stateBirthsAggregates[selectedDistrict.state_name];
+                    const birthsSeries = flatDictToSeries(stateBirths);
                     setBirthSeries(birthsSeries, `Births (${selectedDistrict.state_name})`);
                 } else {
                     setBirthSeries({ years: [], values: [] }, 'Births');
                 }
-                
+
             } else if (view === 'us') {
-                // US enrollment: show data
                 const usSeries = buildUSAggregateEnrollmentSeries();
                 setEnrollmentSeries(usSeries, 'U.S. Average');
-                
-                // District/State: empty data
-                
-                // US births
-                const birthsSeries = buildBirthSeries(nationalBirthsAggregates);
+
+                const birthsSeries = flatDictToSeries(nationalBirthsAggregates);
                 setBirthSeries(birthsSeries, 'Births (U.S.)');
             }
 
@@ -1830,7 +1818,7 @@
 
             // Get district information for prominent display
             const districtName = selectedDistrict ? selectedDistrict.name : 'District';
-            const districtState = selectedDistrict ? selectedDistrict.state : '';
+            const districtState = selectedDistrict ? selectedDistrict.state_name : '';
             const districtCounty = selectedDistrict ? (selectedDistrict.county || '') : '';
             
             // Professional layout constants
